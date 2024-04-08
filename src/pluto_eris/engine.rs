@@ -213,9 +213,9 @@ impl Group for Gt {
 }
 
 /// The type `G2Prepared`` holds the vector of tuples of coefficients which   
-/// are generated during the process of finding [6U + 2]Q. These coefficients 
-/// will be used for line evaluations in Miller loop. The field of `infinity` is set 
-/// true when the given point Q is the infinity. 
+/// are generated during the process of finding [6U + 2]Q. These coefficients
+/// will be used for line evaluations in Miller loop. The field of `infinity` is set
+/// true when the given point Q is the infinity.
 #[derive(Clone, Debug)]
 pub struct G2Prepared {
     pub(crate) coeffs: Vec<(Fp2, Fp2, Fp2)>,
@@ -239,7 +239,7 @@ impl G2Prepared {
 
         // Adaptation of Algorithm 26, https://eprint.iacr.org/2010/354.pdf
         //
-        // Given input r which stands for the point Q in the paper, the output 
+        // Given input r which stands for the point Q in the paper, the output
         // is the tuple of three temporary values used for line evaluation in this
         // round of Miller loop. Meanwhile, the mutable variable r receives the new
         // G2 point: [2]Q.
@@ -325,9 +325,9 @@ impl G2Prepared {
         }
 
         // Adaptation of Algorithm 27, https://eprint.iacr.org/2010/354.pdf
-        // 
-        // Given inputs r , q which exactly stand for the points R, Q in the paper, 
-        // the output is the tuple of three temporary values used for line evaluation 
+        //
+        // Given inputs r , q which exactly stand for the points R, Q in the paper,
+        // the output is the tuple of three temporary values used for line evaluation
         // in this round of Miller loop. Meanwhile, the mutable variable r receives the new
         // G2 point: Q + R.
         fn addition_step(r: &mut G2, q: &G2Affine) -> (Fp2, Fp2, Fp2) {
@@ -420,7 +420,7 @@ impl G2Prepared {
             t9.double_assign();
             t9 -= &t10;
 
-            // corresponds to 2 Z_T in line 19, used for 
+            // corresponds to 2 Z_T in line 19, used for
             // multiplication by y_P in line evaluation
             t10 = r.z;
             t10.double_assign();
@@ -428,7 +428,7 @@ impl G2Prepared {
             // corresponds to line 20
             t6 = t6.neg();
 
-            // corresponds to 2 t_6 in line 21, used for 
+            // corresponds to 2 t_6 in line 21, used for
             // multiplication by x_P in line evaluation
             t1 = t6;
             t1.double_assign();
@@ -447,7 +447,7 @@ impl G2Prepared {
 
         // The loop starts from the index of len - 2 instead of len - 1,
         // see line 3, Algorithm 1 https://eprint.iacr.org/2013/722.pdf
-        // since the value of NEG_SIX_U_PLUS_2_NAF[len - 1] should always 
+        // since the value of NEG_SIX_U_PLUS_2_NAF[len - 1] should always
         // be 1, see the original Optimal Ate Pairing paper:
         // Algorithm 1, https://eprint.iacr.org/2008/096.pdf.
         for i in (0..(NEG_SIX_U_PLUS_2_NAF.len() - 1)).rev() {
@@ -464,7 +464,7 @@ impl G2Prepared {
             }
         }
 
-        // As the seed u < 0, the temporary point r should be replaced 
+        // As the seed u < 0, the temporary point r should be replaced
         // by -r, see line 9, Algorithm 1 https://eprint.iacr.org/2013/722.pdf
         let mut neg_r = r;
         neg_r = -neg_r;
@@ -482,7 +482,7 @@ impl G2Prepared {
 
         let mut minusq2 = q;
         minusq2.x.mul_assign(&FROBENIUS_COEFF_FP6_C1[2]);
-        // notice (57/(u + 3))^{(p^2 - 1)/2} = -1 as 57/(u + 3) is not quadratic 
+        // notice (57/(u + 3))^{(p^2 - 1)/2} = -1 as 57/(u + 3) is not quadratic
         // residue in Fp2 by assumption, thus y_{-Q_2} = y_Q.
 
         // push the coefficients for later line evaluation l_{T + Q_1, -Q_2}(P)
@@ -619,7 +619,7 @@ impl MultiMillerLoop for Pluto {
             }
         }
 
-        // Line evaluation using the given coefficients and multiply with the 
+        // Line evaluation using the given coefficients and multiply with the
         // accumulated temporary value f, see lines 18, 19 in Algorithm 26 and
         // lines 23, 24 in Algorithm 27 in https://eprint.iacr.org/2013/722.pdf
         fn ell(f: &mut Fp12, coeffs: &(Fp2, Fp2, Fp2), p: &G1Affine) {
