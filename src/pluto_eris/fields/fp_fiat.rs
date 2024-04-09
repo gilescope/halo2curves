@@ -4685,3 +4685,118 @@ pub fn divstep_precomp(out1: &mut [u64; 7]) {
     out1[5] = 0x55f97dbad1120b79;
     out1[6] = 0x6b33a24e9008d85;
 }
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::{
+        montgomery_domain_field_element, mul, non_montgomery_domain_field_element, to_montgomery, add, square, from_montgomery,
+    };
+    use crate::pluto_eris::fields::fp::*;
+    use ff::Field;
+    use rand::RngCore;
+    use rand_core::SeedableRng;
+    use rand_xorshift::XorShiftRng;
+
+    fn random(mut rng: impl RngCore) -> [u64; 7] {
+        [
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+            rng.next_u64(),
+        ]
+    }
+
+    fn random_multiplication_test(
+        mg_a: &montgomery_domain_field_element,
+        mg_b: &montgomery_domain_field_element,
+        fp_a: &Fp,
+        fp_b: &Fp,
+    ) {
+        let mut mg_ret = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
+        mul(&mut mg_ret, &mg_a, &mg_b);
+        let fp_ret = fp_a.mul(&fp_b);
+        assert_eq!(mg_ret.0, fp_ret.0);
+    }
+
+    fn random_squaring_test(
+        mg_a: &montgomery_domain_field_element,
+        fp_a: &Fp,
+    ) {
+        let mut mg_ret = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
+        square(&mut mg_ret, &mg_a);
+        let fp_ret = fp_a.square();
+        assert_eq!(mg_ret.0, fp_ret.0);
+    }
+
+    fn random_addition_test(
+        mg_a: &montgomery_domain_field_element,
+        mg_b: &montgomery_domain_field_element,
+        fp_a: &Fp,
+        fp_b: &Fp,
+    ) {
+        let mut mg_ret = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
+        add(&mut mg_ret, &mg_a, &mg_b);
+        let fp_ret = fp_a.add(&fp_b);
+        assert_eq!(mg_ret.0, fp_ret.0);
+    }
+
+    // fn random_subtraction_test(mut rng: R, n: usize) {}
+
+    // fn random_squaring_test(mut rng: R, n: usize) {}
+
+    #[test]
+    fn test_fp_fiat() {
+        let mut rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        for _ in 0..100 {
+            let raw_a = random(&mut rng);
+            let raw_b = random(&mut rng);
+            let non_mg_a = non_montgomery_domain_field_element(raw_a);
+            let non_mg_b = non_montgomery_domain_field_element(raw_b);
+            let mut mg_a = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
+            to_montgomery(&mut mg_a, &non_mg_a);
+            let mut mg_b = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
+            to_montgomery(&mut mg_b, &non_mg_b);
+            let fp_a = Fp::from_raw(raw_a);
+            let fp_b = Fp::from_raw(raw_b);
+            assert_eq!(mg_a.0, fp_a.0);
+            assert_eq!(mg_b.0, fp_b.0);
+            random_multiplication_test(&mg_a, &mg_b, &fp_a, &fp_b);
+            random_squaring_test(&mg_a, &fp_a);
+            random_addition_test(&mg_a, &mg_b, &fp_a, &fp_b);
+        }
+    }
+
+    #[test]
+    fn test_random_fun() {
+        let rng = XorShiftRng::from_seed([
+            0x59, 0x62, 0xbe, 0x5d, 0x76, 0x3d, 0x31, 0x8d, 0x17, 0xdb, 0x37, 0x32, 0x54, 0x06,
+            0xbc, 0xe5,
+        ]);
+
+        let value_fp = Fp::random(rng); // this value should be the Montgomery form of some value x
+
+        // return the initial value x from its Montgomery form
+        let value_mg = montgomery_domain_field_element(value_fp.0);
+        let mut value_non_mg = non_montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
+        from_montgomery(&mut value_non_mg, &value_mg);
+
+        // compute again the Montgomery form of x
+        let mut compute_value_mg = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
+        to_montgomery(&mut compute_value_mg, &value_non_mg);
+
+        // the returned Montgomery form should be equal to the one before doing `from_montgomery`
+        assert_eq!(compute_value_mg.0, value_mg.0);
+        // the returned Montgomery form should be equal to the returned value of `Fp::random()`
+        assert_eq!(compute_value_mg.0, value_fp.0);
+
+
+
+    }
+}
