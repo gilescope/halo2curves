@@ -29,7 +29,7 @@ use serde::{Deserialize, Serialize};
 /// `Fp` values are always in Montgomery form; i.e., Fp(a) = aR mod p, with R = 2^448.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "derive_serde", derive(Serialize, Deserialize))]
-pub struct Fp(pub(crate) [u64; 7]);
+pub struct Fp(pub [u64; 7]);
 
 /// Size of `Fp` element in bytes
 const SIZE: usize = 56;

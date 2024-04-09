@@ -7,7 +7,7 @@
 //! Pairing constants derivation: https://github.com/John-Gong-Math/pluto_eris/blob/main/pluto_pairing.ipynb
 mod curve;
 mod engine;
-mod fields;
+pub mod fields;
 
 pub use curve::*;
 pub use engine::*;

@@ -4689,7 +4689,7 @@ pub fn divstep_precomp(out1: &mut [u64; 7]) {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::{
-        montgomery_domain_field_element, mul, non_montgomery_domain_field_element, to_montgomery, add, square, from_montgomery,
+        montgomery_domain_field_element, mul, non_montgomery_domain_field_element, to_montgomery, add, square, from_montgomery, opp, sub,
     };
     use crate::pluto_eris::fields::fp::*;
     use ff::Field;
@@ -4743,9 +4743,28 @@ pub(crate) mod tests {
         assert_eq!(mg_ret.0, fp_ret.0);
     }
 
-    // fn random_subtraction_test(mut rng: R, n: usize) {}
+    fn random_subtraction_test(
+        mg_a: &montgomery_domain_field_element,
+        mg_b: &montgomery_domain_field_element,
+        fp_a: &Fp,
+        fp_b: &Fp,
+    ) {
+        let mut mg_ret = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
+        sub(&mut mg_ret, &mg_a, &mg_b);
+        let fp_ret = fp_a.sub(&fp_b);
+        assert_eq!(mg_ret.0, fp_ret.0);
+    }
+    
 
-    // fn random_squaring_test(mut rng: R, n: usize) {}
+    fn random_opp_test(
+        mg_a: &montgomery_domain_field_element,
+        fp_a: &Fp,
+    ) {
+        let mut mg_ret = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
+        opp(&mut mg_ret, &mg_a);
+        let fp_ret = fp_a.neg();
+        assert_eq!(mg_ret.0, fp_ret.0);
+    }
 
     #[test]
     fn test_fp_fiat() {
@@ -4770,6 +4789,8 @@ pub(crate) mod tests {
             random_multiplication_test(&mg_a, &mg_b, &fp_a, &fp_b);
             random_squaring_test(&mg_a, &fp_a);
             random_addition_test(&mg_a, &mg_b, &fp_a, &fp_b);
+            random_opp_test(&mg_a, &fp_a);
+            random_subtraction_test(&mg_a, &mg_b, &fp_a, &fp_b);
         }
     }
 
@@ -4795,8 +4816,6 @@ pub(crate) mod tests {
         assert_eq!(compute_value_mg.0, value_mg.0);
         // the returned Montgomery form should be equal to the returned value of `Fp::random()`
         assert_eq!(compute_value_mg.0, value_fp.0);
-
-
 
     }
 }
