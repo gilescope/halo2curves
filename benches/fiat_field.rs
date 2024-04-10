@@ -1,3 +1,6 @@
+//! To run this benchmark: cargo bench -- fiat_field_operations
+
+
 use criterion::{criterion_group, criterion_main, black_box, Criterion};
 
 use halo2curves::pluto_eris::fields::{fp_fiat::*, fp::*};
@@ -20,7 +23,7 @@ pub fn bench_pluto_fiat_field(c: &mut Criterion) {
     let mut mg_ret = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
 
 
-    let mut group = c.benchmark_group("Pluto Field Arithmetics");
+    let mut group = c.benchmark_group("fiat_field_operations");
 
     group.bench_function("pluto_fp_mul", |bencher| {
         bencher.iter(|| black_box(&a).mul(black_box(&b)))
