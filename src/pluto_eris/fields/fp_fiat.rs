@@ -4689,7 +4689,8 @@ pub fn divstep_precomp(out1: &mut [u64; 7]) {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::{
-        montgomery_domain_field_element, mul, non_montgomery_domain_field_element, to_montgomery, add, square, from_montgomery, opp, sub,
+        add, from_montgomery, montgomery_domain_field_element, mul,
+        non_montgomery_domain_field_element, opp, square, sub, to_montgomery,
     };
     use crate::pluto_eris::fields::fp::*;
     use ff::Field;
@@ -4721,10 +4722,7 @@ pub(crate) mod tests {
         assert_eq!(mg_ret.0, fp_ret.0);
     }
 
-    fn random_squaring_test(
-        mg_a: &montgomery_domain_field_element,
-        fp_a: &Fp,
-    ) {
+    fn random_squaring_test(mg_a: &montgomery_domain_field_element, fp_a: &Fp) {
         let mut mg_ret = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
         square(&mut mg_ret, &mg_a);
         let fp_ret = fp_a.square();
@@ -4754,12 +4752,8 @@ pub(crate) mod tests {
         let fp_ret = fp_a.sub(&fp_b);
         assert_eq!(mg_ret.0, fp_ret.0);
     }
-    
 
-    fn random_opp_test(
-        mg_a: &montgomery_domain_field_element,
-        fp_a: &Fp,
-    ) {
+    fn random_opp_test(mg_a: &montgomery_domain_field_element, fp_a: &Fp) {
         let mut mg_ret = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
         opp(&mut mg_ret, &mg_a);
         let fp_ret = fp_a.neg();
@@ -4816,6 +4810,5 @@ pub(crate) mod tests {
         assert_eq!(compute_value_mg.0, value_mg.0);
         // the returned Montgomery form should be equal to the returned value of `Fp::random()`
         assert_eq!(compute_value_mg.0, value_fp.0);
-
     }
 }

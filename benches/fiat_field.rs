@@ -1,10 +1,9 @@
 //! To run this benchmark: cargo bench -- fiat_field_operations
 
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use criterion::{criterion_group, criterion_main, black_box, Criterion};
-
-use halo2curves::pluto_eris::fields::{fp_fiat::*, fp::*};
 use halo2curves::ff::Field;
+use halo2curves::pluto_eris::fields::{fp::*, fp_fiat::*};
 
 use rand_core::SeedableRng;
 use rand_xorshift::XorShiftRng;
@@ -21,7 +20,6 @@ pub fn bench_pluto_fiat_field(c: &mut Criterion) {
     let mg_a = montgomery_domain_field_element(a.0);
     let mg_b = montgomery_domain_field_element(b.0);
     let mut mg_ret = montgomery_domain_field_element([0, 0, 0, 0, 0, 0, 0]);
-
 
     let mut group = c.benchmark_group("fiat_field_operations");
 
