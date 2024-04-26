@@ -84,23 +84,21 @@ impl core::ops::IndexMut<usize> for non_montgomery_domain_field_element {
 ///   out2: [0x0 ~> 0x1]
 fn addcarryx_u64(out1: &mut u64, out2: &mut u1, arg1: u1, arg2: u64, arg3: u64) {
     // let (x1, carry) = arg2.overflowing_add(arg3);
-    let x1: u128 = (((arg1 as u128) + (arg2 as u128)) + (arg3 as u128));
-    let x2: u64 = ((x1 & (0xffffffffffffffff as u128)) as u64);
-    let x3: u1 = ((x1 >> 64) as u1);
-    *out1 = x2;
-    *out2 = x3;
+    let x1: u128 = ((arg1 as u128) + (arg2 as u128)) + (arg3 as u128);
+    *out1 = (x1 & (0xffffffffffffffff as u128)) as u64;
+    *out2 = ((x1 >> 64) as u1);
 }
 
-#[inline(always)]
-fn addoutcarryx_u64(out1: &mut u64, out2: &mut u1, arg2: u64, arg3: u64) {
-    // let (x1, carry) = arg2.overflowing_add(arg3);
-    // let x1: u128 = (((arg2 as u128)) + (arg3 as u128));
-    let (x1, carry) = arg2.overflowing_add(arg3);
-    // let x2: u64 = ((x1 & (0xffffffffffffffff as u128)) as u64);
-    // let x3: u1 = ((x1 >> 64) as u1);
-    *out1 = x1;
-    *out2 = carry.into();
-}
+// #[inline(always)]
+// fn addoutcarryx_u64(out1: &mut u64, out2: &mut u1, arg2: u64, arg3: u64) {
+//     // let (x1, carry) = arg2.overflowing_add(arg3);
+//     // let x1: u128 = (((arg2 as u128)) + (arg3 as u128));
+//     let (x1, carry) = arg2.overflowing_add(arg3);
+//     // let x2: u64 = ((x1 & (0xffffffffffffffff as u128)) as u64);
+//     // let x3: u1 = ((x1 >> 64) as u1);
+//     *out1 = x1;
+//     *out2 = carry.into();
+// }
 
 /// The function subborrowx_u64 is a subtraction with borrow.
 ///
@@ -136,9 +134,9 @@ fn subborrowx_u64(out1: &mut u64, out2: &mut u1, arg1: u1, arg2: u64, arg3: u64)
 ///   out1: [0x0 ~> 0xffffffffffffffff]
 ///   out2: [0x0 ~> 0xffffffffffffffff]
 fn mulx_u64(out1: &mut u64, out2: &mut u64, arg1: u64, arg2: u64) {
-    let x1: u128 = ((arg1 as u128) * (arg2 as u128));
-    let x2: u64 = ((x1 & (0xffffffffffffffff as u128)) as u64);
-    let x3: u64 = ((x1 >> 64) as u64);
+    let x1: u128 = (arg1 as u128) * (arg2 as u128);
+    let x2: u64 = (x1 & (0xffffffffffffffff as u128)) as u64;
+    let x3: u64 = (x1 >> 64) as u64;
     *out1 = x2;
     *out2 = x3;
 }
@@ -154,12 +152,10 @@ fn mulx_u64(out1: &mut u64, out2: &mut u64, arg1: u64, arg2: u64) {
 ///   arg3: [0x0 ~> 0xffffffffffffffff]
 /// Output Bounds:
 ///   out1: [0x0 ~> 0xffffffffffffffff]
+#[inline]
 fn cmovznz_u64(out1: &mut u64, arg1: u1, arg2: u64, arg3: u64) {
-    let x1: u1 = (!(!arg1));
-    let x2: u64 =
-        ((((((0x0 as i2) - (x1 as i2)) as i1) as i128) & (0xffffffffffffffff as i128)) as u64);
-    let x3: u64 = ((x2 & arg3) | ((!x2) & arg2));
-    *out1 = x3;
+    let x2: u64 = ((-(arg1 as i128) & (0xffffffffffffffff_i128)) as u64);
+    *out1 = (x2 & arg3) | (!x2 & arg2);
 }
 
 #[cfg(feature = "asm")]
@@ -214,12 +210,15 @@ pub fn mul(
     let mut x20: u64 = 0;
     let mut x21: u64 = 0;
     mulx_u64(&mut x20, &mut x21, x7, (arg2[0]));
-    let mut x22: u64 = 0;
-    let mut x23: u1 = 0;
-    addoutcarryx_u64(&mut x22, &mut x23, x21, x18);
+    // let mut x22: u64 = 0;
+    // let mut x23: u1 = 0;
+
+    let (x22, x23) = x21.overflowing_add(x18);
+
+    // addoutcarryx_u64(&mut x22, &mut x23, x21, x18);
     let mut x24: u64 = 0;
     let mut x25: u1 = 0;
-    addcarryx_u64(&mut x24, &mut x25, x23, x19, x16);
+    addcarryx_u64(&mut x24, &mut x25, x23.into(), x19, x16);
     let mut x26: u64 = 0;
     let mut x27: u1 = 0;
     addcarryx_u64(&mut x26, &mut x27, x25, x17, x14);
@@ -257,12 +256,14 @@ pub fn mul(
     let mut x49: u64 = 0;
     let mut x50: u64 = 0;
     mulx_u64(&mut x49, &mut x50, x35, 0x9ffffcd300000001);
-    let mut x51: u64 = 0;
-    let mut x52: u1 = 0;
-    addoutcarryx_u64(&mut x51, &mut x52, x50, x47);
+    // let mut x51: u64 = 0;
+    // let mut x52: u1 = 0;
+    // addoutcarryx_u64(&mut x51, &mut x52, x50, x47);
+    let (x51, x52) = x50.overflowing_add(x47);
+
     let mut x53: u64 = 0;
     let mut x54: u1 = 0;
-    addcarryx_u64(&mut x53, &mut x54, x52, x48, x45);
+    addcarryx_u64(&mut x53, &mut x54, x52.into(), x48, x45);
     let mut x55: u64 = 0;
     let mut x56: u1 = 0;
     addcarryx_u64(&mut x55, &mut x56, x54, x46, x43);
@@ -276,12 +277,13 @@ pub fn mul(
     let mut x62: u1 = 0;
     addcarryx_u64(&mut x61, &mut x62, x60, x40, x37);
     let x63: u64 = ((x62 as u64) + x38);
-    let mut x64: u64 = 0;
-    let mut x65: u1 = 0;
-    addoutcarryx_u64(&mut x64, &mut x65, x20, x49);
+    // let mut x64: u64 = 0;
+    // let mut x65: u1 = 0;
+    // addoutcarryx_u64(&mut x64, &mut x65, x20, x49);
+    let (_, x65) = x20.overflowing_add(x49);
     let mut x66: u64 = 0;
     let mut x67: u1 = 0;
-    addcarryx_u64(&mut x66, &mut x67, x65, x22, x51);
+    addcarryx_u64(&mut x66, &mut x67, x65.into(), x22, x51);
     let mut x68: u64 = 0;
     let mut x69: u1 = 0;
     addcarryx_u64(&mut x68, &mut x69, x67, x24, x53);
@@ -321,12 +323,13 @@ pub fn mul(
     let mut x92: u64 = 0;
     let mut x93: u64 = 0;
     mulx_u64(&mut x92, &mut x93, x1, (arg2[0]));
-    let mut x94: u64 = 0;
-    let mut x95: u1 = 0;
-    addoutcarryx_u64(&mut x94, &mut x95, x93, x90);
+    // let mut x94: u64 = 0;
+    // let mut x95: u1 = 0;
+    // addoutcarryx_u64(&mut x94, &mut x95, x93, x90);
+    let (x94, x95) = x93.overflowing_add(x90);
     let mut x96: u64 = 0;
     let mut x97: u1 = 0;
-    addcarryx_u64(&mut x96, &mut x97, x95, x91, x88);
+    addcarryx_u64(&mut x96, &mut x97, x95.into(), x91, x88);
     let mut x98: u64 = 0;
     let mut x99: u1 = 0;
     addcarryx_u64(&mut x98, &mut x99, x97, x89, x86);
@@ -340,12 +343,13 @@ pub fn mul(
     let mut x105: u1 = 0;
     addcarryx_u64(&mut x104, &mut x105, x103, x83, x80);
     let x106: u64 = ((x105 as u64) + x81);
-    let mut x107: u64 = 0;
-    let mut x108: u1 = 0;
-    addoutcarryx_u64(&mut x107, &mut x108, x66, x92);
+    // let mut x107: u64 = 0;
+    // let mut x108: u1 = 0;
+    // addoutcarryx_u64(&mut x107, &mut x108, x66, x92);
+    let (x107, x108) = x66.overflowing_add(x92);
     let mut x109: u64 = 0;
     let mut x110: u1 = 0;
-    addcarryx_u64(&mut x109, &mut x110, x108, x68, x94);
+    addcarryx_u64(&mut x109, &mut x110, x108.into(), x68, x94);
     let mut x111: u64 = 0;
     let mut x112: u1 = 0;
     addcarryx_u64(&mut x111, &mut x112, x110, x70, x96);
@@ -388,12 +392,13 @@ pub fn mul(
     let mut x137: u64 = 0;
     let mut x138: u64 = 0;
     mulx_u64(&mut x137, &mut x138, x123, 0x9ffffcd300000001);
-    let mut x139: u64 = 0;
-    let mut x140: u1 = 0;
-    addoutcarryx_u64(&mut x139, &mut x140, x138, x135);
+    // let mut x139: u64 = 0;
+    // let mut x140: u1 = 0;
+    // addoutcarryx_u64(&mut x139, &mut x140, x138, x135);
+    let (x139, x140) = x138.overflowing_add(x135);
     let mut x141: u64 = 0;
     let mut x142: u1 = 0;
-    addcarryx_u64(&mut x141, &mut x142, x140, x136, x133);
+    addcarryx_u64(&mut x141, &mut x142, x140.into(), x136, x133);
     let mut x143: u64 = 0;
     let mut x144: u1 = 0;
     addcarryx_u64(&mut x143, &mut x144, x142, x134, x131);
@@ -407,12 +412,13 @@ pub fn mul(
     let mut x150: u1 = 0;
     addcarryx_u64(&mut x149, &mut x150, x148, x128, x125);
     let x151: u64 = ((x150 as u64) + x126);
-    let mut x152: u64 = 0;
-    let mut x153: u1 = 0;
-    addoutcarryx_u64(&mut x152, &mut x153, x107, x137);
+    // let mut x152: u64 = 0;
+    // let mut x153: u1 = 0;
+    // addoutcarryx_u64(&mut x152, &mut x153, x107, x137);
+    let (x152, x153) = x107.overflowing_add(x137);
     let mut x154: u64 = 0;
     let mut x155: u1 = 0;
-    addcarryx_u64(&mut x154, &mut x155, x153, x109, x139);
+    addcarryx_u64(&mut x154, &mut x155, x153.into(), x109, x139);
     let mut x156: u64 = 0;
     let mut x157: u1 = 0;
     addcarryx_u64(&mut x156, &mut x157, x155, x111, x141);
@@ -453,12 +459,13 @@ pub fn mul(
     let mut x181: u64 = 0;
     let mut x182: u64 = 0;
     mulx_u64(&mut x181, &mut x182, x2, (arg2[0]));
-    let mut x183: u64 = 0;
-    let mut x184: u1 = 0;
-    addoutcarryx_u64(&mut x183, &mut x184, x182, x179);
+    // let mut x183: u64 = 0;
+    // let mut x184: u1 = 0;
+    // addoutcarryx_u64(&mut x183, &mut x184, x182, x179);
+    let (x183, x184) = x182.overflowing_add(x179);
     let mut x185: u64 = 0;
     let mut x186: u1 = 0;
-    addcarryx_u64(&mut x185, &mut x186, x184, x180, x177);
+    addcarryx_u64(&mut x185, &mut x186, x184.into(), x180, x177);
     let mut x187: u64 = 0;
     let mut x188: u1 = 0;
     addcarryx_u64(&mut x187, &mut x188, x186, x178, x175);
@@ -472,12 +479,13 @@ pub fn mul(
     let mut x194: u1 = 0;
     addcarryx_u64(&mut x193, &mut x194, x192, x172, x169);
     let x195: u64 = ((x194 as u64) + x170);
-    let mut x196: u64 = 0;
-    let mut x197: u1 = 0;
-    addoutcarryx_u64(&mut x196, &mut x197, x154, x181);
+    // let mut x196: u64 = 0;
+    // let mut x197: u1 = 0;
+    // addoutcarryx_u64(&mut x196, &mut x197, x154, x181);
+    let (x196, x197) = x154.overflowing_add(x181);
     let mut x198: u64 = 0;
     let mut x199: u1 = 0;
-    addcarryx_u64(&mut x198, &mut x199, x197, x156, x183);
+    addcarryx_u64(&mut x198, &mut x199, x197.into(), x156, x183);
     let mut x200: u64 = 0;
     let mut x201: u1 = 0;
     addcarryx_u64(&mut x200, &mut x201, x199, x158, x185);
@@ -520,12 +528,13 @@ pub fn mul(
     let mut x226: u64 = 0;
     let mut x227: u64 = 0;
     mulx_u64(&mut x226, &mut x227, x212, 0x9ffffcd300000001);
-    let mut x228: u64 = 0;
-    let mut x229: u1 = 0;
-    addoutcarryx_u64(&mut x228, &mut x229, x227, x224);
+    // let mut x228: u64 = 0;
+    // let mut x229: u1 = 0;
+    // addoutcarryx_u64(&mut x228, &mut x229, x227, x224);
+    let (x228, x229) = x227.overflowing_add(x224);
     let mut x230: u64 = 0;
     let mut x231: u1 = 0;
-    addcarryx_u64(&mut x230, &mut x231, x229, x225, x222);
+    addcarryx_u64(&mut x230, &mut x231, x229.into(), x225, x222);
     let mut x232: u64 = 0;
     let mut x233: u1 = 0;
     addcarryx_u64(&mut x232, &mut x233, x231, x223, x220);
@@ -539,12 +548,13 @@ pub fn mul(
     let mut x239: u1 = 0;
     addcarryx_u64(&mut x238, &mut x239, x237, x217, x214);
     let x240: u64 = ((x239 as u64) + x215);
-    let mut x241: u64 = 0;
-    let mut x242: u1 = 0;
-    addoutcarryx_u64(&mut x241, &mut x242, x196, x226);
+    // let mut x241: u64 = 0;
+    // let mut x242: u1 = 0;
+    // addoutcarryx_u64(&mut x241, &mut x242, x196, x226);
+    let (_, x242) = x196.overflowing_add(x226);
     let mut x243: u64 = 0;
     let mut x244: u1 = 0;
-    addcarryx_u64(&mut x243, &mut x244, x242, x198, x228);
+    addcarryx_u64(&mut x243, &mut x244, x242.into(), x198, x228);
     let mut x245: u64 = 0;
     let mut x246: u1 = 0;
     addcarryx_u64(&mut x245, &mut x246, x244, x200, x230);
@@ -585,12 +595,13 @@ pub fn mul(
     let mut x270: u64 = 0;
     let mut x271: u64 = 0;
     mulx_u64(&mut x270, &mut x271, x3, (arg2[0]));
-    let mut x272: u64 = 0;
-    let mut x273: u1 = 0;
-    addoutcarryx_u64(&mut x272, &mut x273, x271, x268);
+    // let mut x272: u64 = 0;
+    // let mut x273: u1 = 0;
+    // addoutcarryx_u64(&mut x272, &mut x273, x271, x268);
+    let (x272, x273) = x271.overflowing_add(x268);
     let mut x274: u64 = 0;
     let mut x275: u1 = 0;
-    addcarryx_u64(&mut x274, &mut x275, x273, x269, x266);
+    addcarryx_u64(&mut x274, &mut x275, x273.into(), x269, x266);
     let mut x276: u64 = 0;
     let mut x277: u1 = 0;
     addcarryx_u64(&mut x276, &mut x277, x275, x267, x264);
@@ -604,12 +615,13 @@ pub fn mul(
     let mut x283: u1 = 0;
     addcarryx_u64(&mut x282, &mut x283, x281, x261, x258);
     let x284: u64 = ((x283 as u64) + x259);
-    let mut x285: u64 = 0;
-    let mut x286: u1 = 0;
-    addoutcarryx_u64(&mut x285, &mut x286,  x243, x270);
+    // let mut x285: u64 = 0;
+    // let mut x286: u1 = 0;
+    // addoutcarryx_u64(&mut x285, &mut x286,  x243, x270);
+    let (x285, x286) = x243.overflowing_add(x270);
     let mut x287: u64 = 0;
     let mut x288: u1 = 0;
-    addcarryx_u64(&mut x287, &mut x288, x286, x245, x272);
+    addcarryx_u64(&mut x287, &mut x288, x286.into(), x245, x272);
     let mut x289: u64 = 0;
     let mut x290: u1 = 0;
     addcarryx_u64(&mut x289, &mut x290, x288, x247, x274);
@@ -652,12 +664,13 @@ pub fn mul(
     let mut x315: u64 = 0;
     let mut x316: u64 = 0;
     mulx_u64(&mut x315, &mut x316, x301, 0x9ffffcd300000001);
-    let mut x317: u64 = 0;
-    let mut x318: u1 = 0;
-    addoutcarryx_u64(&mut x317, &mut x318, x316, x313);
+    // let mut x317: u64 = 0;
+    // let mut x318: u1 = 0;
+    // addoutcarryx_u64(&mut x317, &mut x318, x316, x313);
+    let (x317, x318) = x316.overflowing_add(x313);
     let mut x319: u64 = 0;
     let mut x320: u1 = 0;
-    addcarryx_u64(&mut x319, &mut x320, x318, x314, x311);
+    addcarryx_u64(&mut x319, &mut x320, x318.into(), x314, x311);
     let mut x321: u64 = 0;
     let mut x322: u1 = 0;
     addcarryx_u64(&mut x321, &mut x322, x320, x312, x309);
@@ -671,12 +684,13 @@ pub fn mul(
     let mut x328: u1 = 0;
     addcarryx_u64(&mut x327, &mut x328, x326, x306, x303);
     let x329: u64 = ((x328 as u64) + x304);
-    let mut x330: u64 = 0;
-    let mut x331: u1 = 0;
-    addoutcarryx_u64(&mut x330, &mut x331,  x285, x315);
+    // let mut x330: u64 = 0;
+    // let mut x331: u1 = 0;
+    // addoutcarryx_u64(&mut x330, &mut x331,  x285, x315);
+    let (_, x331) = x285.overflowing_add(x315);
     let mut x332: u64 = 0;
     let mut x333: u1 = 0;
-    addcarryx_u64(&mut x332, &mut x333, x331, x287, x317);
+    addcarryx_u64(&mut x332, &mut x333, x331.into(), x287, x317);
     let mut x334: u64 = 0;
     let mut x335: u1 = 0;
     addcarryx_u64(&mut x334, &mut x335, x333, x289, x319);
@@ -717,12 +731,13 @@ pub fn mul(
     let mut x359: u64 = 0;
     let mut x360: u64 = 0;
     mulx_u64(&mut x359, &mut x360, x4, (arg2[0]));
-    let mut x361: u64 = 0;
-    let mut x362: u1 = 0;
-    addoutcarryx_u64(&mut x361, &mut x362, x360, x357);
+    // let mut x361: u64 = 0;
+    // let mut x362: u1 = 0;
+    // addoutcarryx_u64(&mut x361, &mut x362, x360, x357);
+    let (x361, x362) = x360.overflowing_add(x357);
     let mut x363: u64 = 0;
     let mut x364: u1 = 0;
-    addcarryx_u64(&mut x363, &mut x364, x362, x358, x355);
+    addcarryx_u64(&mut x363, &mut x364, x362.into(), x358, x355);
     let mut x365: u64 = 0;
     let mut x366: u1 = 0;
     addcarryx_u64(&mut x365, &mut x366, x364, x356, x353);
@@ -736,12 +751,13 @@ pub fn mul(
     let mut x372: u1 = 0;
     addcarryx_u64(&mut x371, &mut x372, x370, x350, x347);
     let x373: u64 = ((x372 as u64) + x348);
-    let mut x374: u64 = 0;
-    let mut x375: u1 = 0;
-    addoutcarryx_u64(&mut x374, &mut x375, x332, x359);
+    // let mut x374: u64 = 0;
+    // let mut x375: u1 = 0;
+    // addoutcarryx_u64(&mut x374, &mut x375, x332, x359);
+    let (x374, x375) = x332.overflowing_add(x359);
     let mut x376: u64 = 0;
     let mut x377: u1 = 0;
-    addcarryx_u64(&mut x376, &mut x377, x375, x334, x361);
+    addcarryx_u64(&mut x376, &mut x377, x375.into(), x334, x361);
     let mut x378: u64 = 0;
     let mut x379: u1 = 0;
     addcarryx_u64(&mut x378, &mut x379, x377, x336, x363);
@@ -784,12 +800,13 @@ pub fn mul(
     let mut x404: u64 = 0;
     let mut x405: u64 = 0;
     mulx_u64(&mut x404, &mut x405, x390, 0x9ffffcd300000001);
-    let mut x406: u64 = 0;
-    let mut x407: u1 = 0;
-    addoutcarryx_u64(&mut x406, &mut x407, x405, x402);
+    // let mut x406: u64 = 0;
+    // let mut x407: u1 = 0;
+    // addoutcarryx_u64(&mut x406, &mut x407, x405, x402);
+    let (x406, x407) = x405.overflowing_add(x402);
     let mut x408: u64 = 0;
     let mut x409: u1 = 0;
-    addcarryx_u64(&mut x408, &mut x409, x407, x403, x400);
+    addcarryx_u64(&mut x408, &mut x409, x407.into(), x403, x400);
     let mut x410: u64 = 0;
     let mut x411: u1 = 0;
     addcarryx_u64(&mut x410, &mut x411, x409, x401, x398);
@@ -803,12 +820,13 @@ pub fn mul(
     let mut x417: u1 = 0;
     addcarryx_u64(&mut x416, &mut x417, x415, x395, x392);
     let x418: u64 = ((x417 as u64) + x393);
-    let mut x419: u64 = 0;
-    let mut x420: u1 = 0;
-    addoutcarryx_u64(&mut x419, &mut x420, x374, x404);
+    // let mut x419: u64 = 0;
+    // let mut x420: u1 = 0;
+    // addoutcarryx_u64(&mut x419, &mut x420, x374, x404);
+    let (_, x420) = x374.overflowing_add(x404);
     let mut x421: u64 = 0;
     let mut x422: u1 = 0;
-    addcarryx_u64(&mut x421, &mut x422, x420, x376, x406);
+    addcarryx_u64(&mut x421, &mut x422, x420.into(), x376, x406);
     let mut x423: u64 = 0;
     let mut x424: u1 = 0;
     addcarryx_u64(&mut x423, &mut x424, x422, x378, x408);
@@ -849,12 +867,13 @@ pub fn mul(
     let mut x448: u64 = 0;
     let mut x449: u64 = 0;
     mulx_u64(&mut x448, &mut x449, x5, (arg2[0]));
-    let mut x450: u64 = 0;
-    let mut x451: u1 = 0;
-    addoutcarryx_u64(&mut x450, &mut x451, x449, x446);
+    // let mut x450: u64 = 0;
+    // let mut x451: u1 = 0;
+    // addoutcarryx_u64(&mut x450, &mut x451, x449, x446);
+    let (x450, x451) = x449.overflowing_add(x446);
     let mut x452: u64 = 0;
     let mut x453: u1 = 0;
-    addcarryx_u64(&mut x452, &mut x453, x451, x447, x444);
+    addcarryx_u64(&mut x452, &mut x453, x451.into(), x447, x444);
     let mut x454: u64 = 0;
     let mut x455: u1 = 0;
     addcarryx_u64(&mut x454, &mut x455, x453, x445, x442);
@@ -868,12 +887,13 @@ pub fn mul(
     let mut x461: u1 = 0;
     addcarryx_u64(&mut x460, &mut x461, x459, x439, x436);
     let x462: u64 = ((x461 as u64) + x437);
-    let mut x463: u64 = 0;
-    let mut x464: u1 = 0;
-    addoutcarryx_u64(&mut x463, &mut x464, x421, x448);
+    // let mut x463: u64 = 0;
+    // let mut x464: u1 = 0;
+    // addoutcarryx_u64(&mut x463, &mut x464, x421, x448);
+    let (x463, x464) = x421.overflowing_add(x448);
     let mut x465: u64 = 0;
     let mut x466: u1 = 0;
-    addcarryx_u64(&mut x465, &mut x466, x464, x423, x450);
+    addcarryx_u64(&mut x465, &mut x466, x464.into(), x423, x450);
     let mut x467: u64 = 0;
     let mut x468: u1 = 0;
     addcarryx_u64(&mut x467, &mut x468, x466, x425, x452);
@@ -894,7 +914,7 @@ pub fn mul(
     addcarryx_u64(&mut x477, &mut x478, x476, x435, x462);
     let mut x479: u64 = 0;
     let mut x480: u64 = 0;
-    mulx_u64(&mut x479, &mut x480, x463, 0x9ffffcd2ffffffff);
+    mulx_u64(&mut x479, &mut x480, x463.into(), 0x9ffffcd2ffffffff);
     let mut x481: u64 = 0;
     let mut x482: u64 = 0;
     mulx_u64(&mut x481, &mut x482, x479, 0x2400000000002400);
@@ -916,12 +936,13 @@ pub fn mul(
     let mut x493: u64 = 0;
     let mut x494: u64 = 0;
     mulx_u64(&mut x493, &mut x494, x479, 0x9ffffcd300000001);
-    let mut x495: u64 = 0;
-    let mut x496: u1 = 0;
-    addoutcarryx_u64(&mut x495, &mut x496, x494, x491);
+    // let mut x495: u64 = 0;
+    // let mut x496: u1 = 0;
+    // addoutcarryx_u64(&mut x495, &mut x496, x494, x491);
+    let (x495, x496) = x494.overflowing_add(x491);
     let mut x497: u64 = 0;
     let mut x498: u1 = 0;
-    addcarryx_u64(&mut x497, &mut x498, x496, x492, x489);
+    addcarryx_u64(&mut x497, &mut x498, x496.into(), x492, x489);
     let mut x499: u64 = 0;
     let mut x500: u1 = 0;
     addcarryx_u64(&mut x499, &mut x500, x498, x490, x487);
@@ -935,12 +956,13 @@ pub fn mul(
     let mut x506: u1 = 0;
     addcarryx_u64(&mut x505, &mut x506, x504, x484, x481);
     let x507: u64 = ((x506 as u64) + x482);
-    let mut x508: u64 = 0;
-    let mut x509: u1 = 0;
-    addoutcarryx_u64(&mut x508, &mut x509,  x463, x493);
+    // let mut x508: u64 = 0;
+    // let mut x509: u1 = 0;
+    // addoutcarryx_u64(&mut x508, &mut x509,  x463, x493);
+    let (_, x509) = x463.overflowing_add(x493);
     let mut x510: u64 = 0;
     let mut x511: u1 = 0;
-    addcarryx_u64(&mut x510, &mut x511, x509, x465, x495);
+    addcarryx_u64(&mut x510, &mut x511, x509.into(), x465, x495);
     let mut x512: u64 = 0;
     let mut x513: u1 = 0;
     addcarryx_u64(&mut x512, &mut x513, x511, x467, x497);
@@ -981,12 +1003,13 @@ pub fn mul(
     let mut x537: u64 = 0;
     let mut x538: u64 = 0;
     mulx_u64(&mut x537, &mut x538, x6, (arg2[0]));
-    let mut x539: u64 = 0;
-    let mut x540: u1 = 0;
-    addoutcarryx_u64(&mut x539, &mut x540,  x538, x535);
+    // let mut x539: u64 = 0;
+    // let mut x540: u1 = 0;
+    // addoutcarryx_u64(&mut x539, &mut x540,  x538, x535);
+    let (x539, x540) = x538.overflowing_add(x535);
     let mut x541: u64 = 0;
     let mut x542: u1 = 0;
-    addcarryx_u64(&mut x541, &mut x542, x540, x536, x533);
+    addcarryx_u64(&mut x541, &mut x542, x540.into(), x536, x533);
     let mut x543: u64 = 0;
     let mut x544: u1 = 0;
     addcarryx_u64(&mut x543, &mut x544, x542, x534, x531);
@@ -1000,12 +1023,13 @@ pub fn mul(
     let mut x550: u1 = 0;
     addcarryx_u64(&mut x549, &mut x550, x548, x528, x525);
     let x551: u64 = ((x550 as u64) + x526);
-    let mut x552: u64 = 0;
-    let mut x553: u1 = 0;
-    addoutcarryx_u64(&mut x552, &mut x553, x510, x537);
+    // let mut x552: u64 = 0;
+    // let mut x553: u1 = 0;
+    // addoutcarryx_u64(&mut x552, &mut x553, x510, x537);
+    let (x552, x553) = x510.overflowing_add(x537);
     let mut x554: u64 = 0;
     let mut x555: u1 = 0;
-    addcarryx_u64(&mut x554, &mut x555, x553, x512, x539);
+    addcarryx_u64(&mut x554, &mut x555, x553.into(), x512, x539);
     let mut x556: u64 = 0;
     let mut x557: u1 = 0;
     addcarryx_u64(&mut x556, &mut x557, x555, x514, x541);
@@ -1048,12 +1072,13 @@ pub fn mul(
     let mut x582: u64 = 0;
     let mut x583: u64 = 0;
     mulx_u64(&mut x582, &mut x583, x568, 0x9ffffcd300000001);
-    let mut x584: u64 = 0;
-    let mut x585: u1 = 0;
-    addoutcarryx_u64(&mut x584, &mut x585, x583, x580);
+    // let mut x584: u64 = 0;
+    // let mut x585: u1 = 0;
+    // addoutcarryx_u64(&mut x584, &mut x585, x583, x580);
+    let (x584, x585) = x583.overflowing_add(x580);
     let mut x586: u64 = 0;
     let mut x587: u1 = 0;
-    addcarryx_u64(&mut x586, &mut x587, x585, x581, x578);
+    addcarryx_u64(&mut x586, &mut x587, x585.into(), x581, x578);
     let mut x588: u64 = 0;
     let mut x589: u1 = 0;
     addcarryx_u64(&mut x588, &mut x589, x587, x579, x576);
@@ -1067,12 +1092,13 @@ pub fn mul(
     let mut x595: u1 = 0;
     addcarryx_u64(&mut x594, &mut x595, x593, x573, x570);
     let x596: u64 = ((x595 as u64) + x571);
-    let mut x597: u64 = 0;
-    let mut x598: u1 = 0;
-    addoutcarryx_u64(&mut x597, &mut x598,  x552, x582);
+    // let mut x597: u64 = 0;
+    // let mut x598: u1 = 0;
+    // addoutcarryx_u64(&mut x597, &mut x598,  x552, x582);
+    let (_x597, x598) = x552.overflowing_add(x582);
     let mut x599: u64 = 0;
     let mut x600: u1 = 0;
-    addcarryx_u64(&mut x599, &mut x600, x598, x554, x584);
+    addcarryx_u64(&mut x599, &mut x600, x598.into(), x554, x584);
     let mut x601: u64 = 0;
     let mut x602: u1 = 0;
     addcarryx_u64(&mut x601, &mut x602, x600, x556, x586);
@@ -1137,6 +1163,9 @@ pub fn mul(
     out1[4] = x634;
     out1[5] = x635;
     out1[6] = x636;
+
+    // +2%
+    // *out1 = montgomery_domain_field_element([x630, x631, x632, x633, x634, x635, x636]);
 }
 
 /// The function square squares a field element in the Montgomery domain.
