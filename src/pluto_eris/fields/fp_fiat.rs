@@ -83,11 +83,23 @@ impl core::ops::IndexMut<usize> for non_montgomery_domain_field_element {
 ///   out1: [0x0 ~> 0xffffffffffffffff]
 ///   out2: [0x0 ~> 0x1]
 fn addcarryx_u64(out1: &mut u64, out2: &mut u1, arg1: u1, arg2: u64, arg3: u64) {
+    // let (x1, carry) = arg2.overflowing_add(arg3);
     let x1: u128 = (((arg1 as u128) + (arg2 as u128)) + (arg3 as u128));
     let x2: u64 = ((x1 & (0xffffffffffffffff as u128)) as u64);
     let x3: u1 = ((x1 >> 64) as u1);
     *out1 = x2;
     *out2 = x3;
+}
+
+#[inline(always)]
+fn addoutcarryx_u64(out1: &mut u64, out2: &mut u1, arg2: u64, arg3: u64) {
+    // let (x1, carry) = arg2.overflowing_add(arg3);
+    // let x1: u128 = (((arg2 as u128)) + (arg3 as u128));
+    let (x1, carry) = arg2.overflowing_add(arg3);
+    // let x2: u64 = ((x1 & (0xffffffffffffffff as u128)) as u64);
+    // let x3: u1 = ((x1 >> 64) as u1);
+    *out1 = x1;
+    *out2 = carry.into();
 }
 
 /// The function subborrowx_u64 is a subtraction with borrow.
@@ -204,7 +216,7 @@ pub fn mul(
     mulx_u64(&mut x20, &mut x21, x7, (arg2[0]));
     let mut x22: u64 = 0;
     let mut x23: u1 = 0;
-    addcarryx_u64(&mut x22, &mut x23, 0x0, x21, x18);
+    addoutcarryx_u64(&mut x22, &mut x23, x21, x18);
     let mut x24: u64 = 0;
     let mut x25: u1 = 0;
     addcarryx_u64(&mut x24, &mut x25, x23, x19, x16);
@@ -247,7 +259,7 @@ pub fn mul(
     mulx_u64(&mut x49, &mut x50, x35, 0x9ffffcd300000001);
     let mut x51: u64 = 0;
     let mut x52: u1 = 0;
-    addcarryx_u64(&mut x51, &mut x52, 0x0, x50, x47);
+    addoutcarryx_u64(&mut x51, &mut x52, x50, x47);
     let mut x53: u64 = 0;
     let mut x54: u1 = 0;
     addcarryx_u64(&mut x53, &mut x54, x52, x48, x45);
@@ -266,7 +278,7 @@ pub fn mul(
     let x63: u64 = ((x62 as u64) + x38);
     let mut x64: u64 = 0;
     let mut x65: u1 = 0;
-    addcarryx_u64(&mut x64, &mut x65, 0x0, x20, x49);
+    addoutcarryx_u64(&mut x64, &mut x65, x20, x49);
     let mut x66: u64 = 0;
     let mut x67: u1 = 0;
     addcarryx_u64(&mut x66, &mut x67, x65, x22, x51);
@@ -311,7 +323,7 @@ pub fn mul(
     mulx_u64(&mut x92, &mut x93, x1, (arg2[0]));
     let mut x94: u64 = 0;
     let mut x95: u1 = 0;
-    addcarryx_u64(&mut x94, &mut x95, 0x0, x93, x90);
+    addoutcarryx_u64(&mut x94, &mut x95, x93, x90);
     let mut x96: u64 = 0;
     let mut x97: u1 = 0;
     addcarryx_u64(&mut x96, &mut x97, x95, x91, x88);
@@ -330,7 +342,7 @@ pub fn mul(
     let x106: u64 = ((x105 as u64) + x81);
     let mut x107: u64 = 0;
     let mut x108: u1 = 0;
-    addcarryx_u64(&mut x107, &mut x108, 0x0, x66, x92);
+    addoutcarryx_u64(&mut x107, &mut x108, x66, x92);
     let mut x109: u64 = 0;
     let mut x110: u1 = 0;
     addcarryx_u64(&mut x109, &mut x110, x108, x68, x94);
@@ -378,7 +390,7 @@ pub fn mul(
     mulx_u64(&mut x137, &mut x138, x123, 0x9ffffcd300000001);
     let mut x139: u64 = 0;
     let mut x140: u1 = 0;
-    addcarryx_u64(&mut x139, &mut x140, 0x0, x138, x135);
+    addoutcarryx_u64(&mut x139, &mut x140, x138, x135);
     let mut x141: u64 = 0;
     let mut x142: u1 = 0;
     addcarryx_u64(&mut x141, &mut x142, x140, x136, x133);
@@ -397,7 +409,7 @@ pub fn mul(
     let x151: u64 = ((x150 as u64) + x126);
     let mut x152: u64 = 0;
     let mut x153: u1 = 0;
-    addcarryx_u64(&mut x152, &mut x153, 0x0, x107, x137);
+    addoutcarryx_u64(&mut x152, &mut x153, x107, x137);
     let mut x154: u64 = 0;
     let mut x155: u1 = 0;
     addcarryx_u64(&mut x154, &mut x155, x153, x109, x139);
@@ -443,7 +455,7 @@ pub fn mul(
     mulx_u64(&mut x181, &mut x182, x2, (arg2[0]));
     let mut x183: u64 = 0;
     let mut x184: u1 = 0;
-    addcarryx_u64(&mut x183, &mut x184, 0x0, x182, x179);
+    addoutcarryx_u64(&mut x183, &mut x184, x182, x179);
     let mut x185: u64 = 0;
     let mut x186: u1 = 0;
     addcarryx_u64(&mut x185, &mut x186, x184, x180, x177);
@@ -462,7 +474,7 @@ pub fn mul(
     let x195: u64 = ((x194 as u64) + x170);
     let mut x196: u64 = 0;
     let mut x197: u1 = 0;
-    addcarryx_u64(&mut x196, &mut x197, 0x0, x154, x181);
+    addoutcarryx_u64(&mut x196, &mut x197, x154, x181);
     let mut x198: u64 = 0;
     let mut x199: u1 = 0;
     addcarryx_u64(&mut x198, &mut x199, x197, x156, x183);
@@ -510,7 +522,7 @@ pub fn mul(
     mulx_u64(&mut x226, &mut x227, x212, 0x9ffffcd300000001);
     let mut x228: u64 = 0;
     let mut x229: u1 = 0;
-    addcarryx_u64(&mut x228, &mut x229, 0x0, x227, x224);
+    addoutcarryx_u64(&mut x228, &mut x229, x227, x224);
     let mut x230: u64 = 0;
     let mut x231: u1 = 0;
     addcarryx_u64(&mut x230, &mut x231, x229, x225, x222);
@@ -529,7 +541,7 @@ pub fn mul(
     let x240: u64 = ((x239 as u64) + x215);
     let mut x241: u64 = 0;
     let mut x242: u1 = 0;
-    addcarryx_u64(&mut x241, &mut x242, 0x0, x196, x226);
+    addoutcarryx_u64(&mut x241, &mut x242, x196, x226);
     let mut x243: u64 = 0;
     let mut x244: u1 = 0;
     addcarryx_u64(&mut x243, &mut x244, x242, x198, x228);
@@ -575,7 +587,7 @@ pub fn mul(
     mulx_u64(&mut x270, &mut x271, x3, (arg2[0]));
     let mut x272: u64 = 0;
     let mut x273: u1 = 0;
-    addcarryx_u64(&mut x272, &mut x273, 0x0, x271, x268);
+    addoutcarryx_u64(&mut x272, &mut x273, x271, x268);
     let mut x274: u64 = 0;
     let mut x275: u1 = 0;
     addcarryx_u64(&mut x274, &mut x275, x273, x269, x266);
@@ -594,7 +606,7 @@ pub fn mul(
     let x284: u64 = ((x283 as u64) + x259);
     let mut x285: u64 = 0;
     let mut x286: u1 = 0;
-    addcarryx_u64(&mut x285, &mut x286, 0x0, x243, x270);
+    addoutcarryx_u64(&mut x285, &mut x286,  x243, x270);
     let mut x287: u64 = 0;
     let mut x288: u1 = 0;
     addcarryx_u64(&mut x287, &mut x288, x286, x245, x272);
@@ -642,7 +654,7 @@ pub fn mul(
     mulx_u64(&mut x315, &mut x316, x301, 0x9ffffcd300000001);
     let mut x317: u64 = 0;
     let mut x318: u1 = 0;
-    addcarryx_u64(&mut x317, &mut x318, 0x0, x316, x313);
+    addoutcarryx_u64(&mut x317, &mut x318, x316, x313);
     let mut x319: u64 = 0;
     let mut x320: u1 = 0;
     addcarryx_u64(&mut x319, &mut x320, x318, x314, x311);
@@ -661,7 +673,7 @@ pub fn mul(
     let x329: u64 = ((x328 as u64) + x304);
     let mut x330: u64 = 0;
     let mut x331: u1 = 0;
-    addcarryx_u64(&mut x330, &mut x331, 0x0, x285, x315);
+    addoutcarryx_u64(&mut x330, &mut x331,  x285, x315);
     let mut x332: u64 = 0;
     let mut x333: u1 = 0;
     addcarryx_u64(&mut x332, &mut x333, x331, x287, x317);
@@ -707,7 +719,7 @@ pub fn mul(
     mulx_u64(&mut x359, &mut x360, x4, (arg2[0]));
     let mut x361: u64 = 0;
     let mut x362: u1 = 0;
-    addcarryx_u64(&mut x361, &mut x362, 0x0, x360, x357);
+    addoutcarryx_u64(&mut x361, &mut x362, x360, x357);
     let mut x363: u64 = 0;
     let mut x364: u1 = 0;
     addcarryx_u64(&mut x363, &mut x364, x362, x358, x355);
@@ -726,7 +738,7 @@ pub fn mul(
     let x373: u64 = ((x372 as u64) + x348);
     let mut x374: u64 = 0;
     let mut x375: u1 = 0;
-    addcarryx_u64(&mut x374, &mut x375, 0x0, x332, x359);
+    addoutcarryx_u64(&mut x374, &mut x375, x332, x359);
     let mut x376: u64 = 0;
     let mut x377: u1 = 0;
     addcarryx_u64(&mut x376, &mut x377, x375, x334, x361);
@@ -774,7 +786,7 @@ pub fn mul(
     mulx_u64(&mut x404, &mut x405, x390, 0x9ffffcd300000001);
     let mut x406: u64 = 0;
     let mut x407: u1 = 0;
-    addcarryx_u64(&mut x406, &mut x407, 0x0, x405, x402);
+    addoutcarryx_u64(&mut x406, &mut x407, x405, x402);
     let mut x408: u64 = 0;
     let mut x409: u1 = 0;
     addcarryx_u64(&mut x408, &mut x409, x407, x403, x400);
@@ -793,7 +805,7 @@ pub fn mul(
     let x418: u64 = ((x417 as u64) + x393);
     let mut x419: u64 = 0;
     let mut x420: u1 = 0;
-    addcarryx_u64(&mut x419, &mut x420, 0x0, x374, x404);
+    addoutcarryx_u64(&mut x419, &mut x420, x374, x404);
     let mut x421: u64 = 0;
     let mut x422: u1 = 0;
     addcarryx_u64(&mut x421, &mut x422, x420, x376, x406);
@@ -839,7 +851,7 @@ pub fn mul(
     mulx_u64(&mut x448, &mut x449, x5, (arg2[0]));
     let mut x450: u64 = 0;
     let mut x451: u1 = 0;
-    addcarryx_u64(&mut x450, &mut x451, 0x0, x449, x446);
+    addoutcarryx_u64(&mut x450, &mut x451, x449, x446);
     let mut x452: u64 = 0;
     let mut x453: u1 = 0;
     addcarryx_u64(&mut x452, &mut x453, x451, x447, x444);
@@ -858,7 +870,7 @@ pub fn mul(
     let x462: u64 = ((x461 as u64) + x437);
     let mut x463: u64 = 0;
     let mut x464: u1 = 0;
-    addcarryx_u64(&mut x463, &mut x464, 0x0, x421, x448);
+    addoutcarryx_u64(&mut x463, &mut x464, x421, x448);
     let mut x465: u64 = 0;
     let mut x466: u1 = 0;
     addcarryx_u64(&mut x465, &mut x466, x464, x423, x450);
@@ -906,7 +918,7 @@ pub fn mul(
     mulx_u64(&mut x493, &mut x494, x479, 0x9ffffcd300000001);
     let mut x495: u64 = 0;
     let mut x496: u1 = 0;
-    addcarryx_u64(&mut x495, &mut x496, 0x0, x494, x491);
+    addoutcarryx_u64(&mut x495, &mut x496, x494, x491);
     let mut x497: u64 = 0;
     let mut x498: u1 = 0;
     addcarryx_u64(&mut x497, &mut x498, x496, x492, x489);
@@ -925,7 +937,7 @@ pub fn mul(
     let x507: u64 = ((x506 as u64) + x482);
     let mut x508: u64 = 0;
     let mut x509: u1 = 0;
-    addcarryx_u64(&mut x508, &mut x509, 0x0, x463, x493);
+    addoutcarryx_u64(&mut x508, &mut x509,  x463, x493);
     let mut x510: u64 = 0;
     let mut x511: u1 = 0;
     addcarryx_u64(&mut x510, &mut x511, x509, x465, x495);
@@ -971,7 +983,7 @@ pub fn mul(
     mulx_u64(&mut x537, &mut x538, x6, (arg2[0]));
     let mut x539: u64 = 0;
     let mut x540: u1 = 0;
-    addcarryx_u64(&mut x539, &mut x540, 0x0, x538, x535);
+    addoutcarryx_u64(&mut x539, &mut x540,  x538, x535);
     let mut x541: u64 = 0;
     let mut x542: u1 = 0;
     addcarryx_u64(&mut x541, &mut x542, x540, x536, x533);
@@ -990,7 +1002,7 @@ pub fn mul(
     let x551: u64 = ((x550 as u64) + x526);
     let mut x552: u64 = 0;
     let mut x553: u1 = 0;
-    addcarryx_u64(&mut x552, &mut x553, 0x0, x510, x537);
+    addoutcarryx_u64(&mut x552, &mut x553, x510, x537);
     let mut x554: u64 = 0;
     let mut x555: u1 = 0;
     addcarryx_u64(&mut x554, &mut x555, x553, x512, x539);
@@ -1038,7 +1050,7 @@ pub fn mul(
     mulx_u64(&mut x582, &mut x583, x568, 0x9ffffcd300000001);
     let mut x584: u64 = 0;
     let mut x585: u1 = 0;
-    addcarryx_u64(&mut x584, &mut x585, 0x0, x583, x580);
+    addoutcarryx_u64(&mut x584, &mut x585, x583, x580);
     let mut x586: u64 = 0;
     let mut x587: u1 = 0;
     addcarryx_u64(&mut x586, &mut x587, x585, x581, x578);
@@ -1057,7 +1069,7 @@ pub fn mul(
     let x596: u64 = ((x595 as u64) + x571);
     let mut x597: u64 = 0;
     let mut x598: u1 = 0;
-    addcarryx_u64(&mut x597, &mut x598, 0x0, x552, x582);
+    addoutcarryx_u64(&mut x597, &mut x598,  x552, x582);
     let mut x599: u64 = 0;
     let mut x600: u1 = 0;
     addcarryx_u64(&mut x599, &mut x600, x598, x554, x584);
