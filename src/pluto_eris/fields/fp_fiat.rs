@@ -18,6 +18,8 @@
 #![allow(unused_parens)]
 #![allow(non_camel_case_types)]
 
+use super::assembly;
+
 /** u1 represents values of 1 bits, stored in one byte. */
 type u1 = u8;
 /** i1 represents values of 1 bits, stored in one byte. */
@@ -148,6 +150,15 @@ fn cmovznz_u64(out1: &mut u64, arg1: u1, arg2: u64, arg3: u64) {
     *out1 = x3;
 }
 
+#[cfg(feature = "asm")]
+pub fn mul(
+    out1: &mut montgomery_domain_field_element,
+    arg1: &montgomery_domain_field_element,
+    arg2: &montgomery_domain_field_element,
+) {
+    assembly::mul_asm(&mut out1.0, &arg1.0, &arg2.0)
+}
+
 /// The function mul multiplies two field elements in the Montgomery domain.
 ///
 /// Preconditions:
@@ -157,6 +168,7 @@ fn cmovznz_u64(out1: &mut u64, arg1: u1, arg2: u64, arg3: u64) {
 ///   eval (from_montgomery out1) mod m = (eval (from_montgomery arg1) * eval (from_montgomery arg2)) mod m
 ///   0 ≤ eval out1 < m
 ///
+#[cfg(not(feature = "asm"))]
 pub fn mul(
     out1: &mut montgomery_domain_field_element,
     arg1: &montgomery_domain_field_element,

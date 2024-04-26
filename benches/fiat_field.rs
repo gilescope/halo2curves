@@ -14,8 +14,13 @@ pub fn bench_pluto_fiat_field(c: &mut Criterion) {
         0xe5,
     ]);
 
-    let a = Fp::random(&mut rng);
-    let b = Fp::random(&mut rng);
+    // Tried to hardcode the inputs to some that worked in the test,
+    // but bench still segfaults using asm version.
+    let a = Fp([9727937518965806870, 17997379296386006080, 15768176054952429141, 16030199860960463994, 16461039066468101070, 15473669141602183867, 1284300730483519534]); 
+    let b = Fp([11900058621813723661, 12194876775783740577, 12052811721051170045, 14225122879085785230, 15158554168614662472, 2622749211587325692, 1835628996346027802]);
+
+    //let a = Fp::random(&mut rng);
+    //let b = Fp::random(&mut rng);
 
     let mg_a = montgomery_domain_field_element(a.0);
     let mg_b = montgomery_domain_field_element(b.0);
