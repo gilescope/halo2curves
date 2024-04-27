@@ -1,3 +1,5 @@
+#![feature(bigint_helper_methods)]
+
 mod arithmetic;
 pub mod ff_ext;
 pub mod fft;
