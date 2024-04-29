@@ -69,40 +69,6 @@ impl core::ops::IndexMut<usize> for non_montgomery_domain_field_element {
     }
 }
 
-/// The function addcarryx_u64 is an addition with carry.
-///
-/// Postconditions:
-///   out1 = (arg1 + arg2 + arg3) mod 2^64
-///   out2 = ⌊(arg1 + arg2 + arg3) / 2^64⌋
-///
-/// Input Bounds:
-///   arg1: [0x0 ~> 0x1]
-///   arg2: [0x0 ~> 0xffffffffffffffff]
-///   arg3: [0x0 ~> 0xffffffffffffffff]
-/// Output Bounds:
-///   out1: [0x0 ~> 0xffffffffffffffff]
-///   out2: [0x0 ~> 0x1]
-fn addcarryx_u64(out1: &mut u64, out2: &mut u1, arg1: u1, arg2: u64, arg3: u64) {
-    // let (x1, carry) = arg2.overflowing_add(arg3);
-    // let (total, carry) = arg2.overflowing_add(arg3);
-    // let mut x1 = total as u128;
-    // x1 += arg1 as u128;
-    // if carry {
-    //     x1 += 1;
-    // }
-
-    // let x1 = arg1 as u128 + arg3 as u128 + arg3 as u128;
-    let x1: u128 = ((arg1 as u128) + (arg2 as u128)) + (arg3 as u128);
-
-    // let c = if carry {
-    //     1u8
-    // } else { 0u8 };
-    // let x1: u128 = (arg1 as u8 + c as u8  ) as u128 + (total as u128); // (arg2 as u128)) + (arg3 as u128);
-
-    *out1 = (x1 & 0xffffffffffffffff_u128) as u64;
-    *out2 = ((x1 >> 64) as u1);
-}
-
 // fn addinoutcarryx_u64(out1: &mut u64, out2: &mut u1, arg1: bool, arg2: u64, arg3: u64) {
 //     // let (x1, carry) = arg2.overflowing_add(arg3);
 //     // let (total, carry) = arg2.overflowing_add(arg3);
@@ -230,8 +196,11 @@ pub fn mul(
 ///   eval (from_montgomery out1) mod m = (eval (from_montgomery arg1) * eval (from_montgomery arg2)) mod m
 ///   0 ≤ eval out1 < m
 ///
+// .*addcarryx_u64\(&mut (x\d+), &mut (x\d+), ((x\d+|0x0)), (x\d+), ((\(0x0 as u64\)|\(x\d+ \& 0x\w+\)))\);
 // .*addcarryx_u64\(&mut (x\d+), &mut (x\d+), (x\d+), (x\d+), (x\d+)\);
 // let ($1, $2) = $4.carrying_add($5, $3);
+//.*addcarryx_u64\(&mut (x\d+), &mut (x\d+), (x\d+), (\(arg1\[\d\]\)), (\(arg2\[\d\]\))\);
+//let ($1, $2) = $4.carrying_add($5, $3);
 //.*addcarryx_u64\(&mut (x\d+), &mut (x\d+), 0x0, (x\d+), (x\d+)\);
 //let ($1, $2) = $3.overflowing_add($4);
 //.*mulx_u64\(&mut (x\d+), &mut (x\d+), (x\d+), \((arg2\[\d\])\)\);
@@ -241,6 +210,10 @@ pub fn mul(
 //.*mulx_u64\(&mut (x\d+), &mut (x\d+), (x\d+), (0x\w+)\);
 //let ($1, $2) = $3.widening_mul($4);
 //
+//.*subborrowx_u64\(&mut (x\d+), &mut (x\d+), (x\d+), (x\d+), (0x\w+)\);
+//let ($1, $2) = $4.borrowing_sub($5, $3);
+//.*subborrowx_u64\(&mut (x\d+), &mut (x\d+), (x\d+), (\(arg1\[\d\]\)), (\(arg2\[\d\]\))\);
+//let ($1, $2) = $4.borrowing_sub($5, $3);
 //#[cfg(not(feature = "asm"))]
 pub fn mul(
     out1: &mut montgomery_domain_field_element,
@@ -581,22 +554,10 @@ pub fn mul(
     let (x626, x627) = x611.borrowing_sub(0x2400000000002400, x625);
     let (_, x629) = x613.borrowing_sub(0x0, x627);
 
-    if x629 {
-        out1[0] = x599;
-        out1[1] = x601;
-        out1[2] = x603;
-        out1[3] = x605;
-        out1[4] = x607;
-        out1[5] = x609;
-        out1[6] = x611;
+    out1.0 = if x629 {
+        [ x599, x601, x603, x605, x607, x609, x611 ]
     } else {
-        out1[0] = x614;
-        out1[1] = x616;
-        out1[2] = x618;
-        out1[3] = x620;
-        out1[4] = x622;
-        out1[5] = x624;
-        out1[6] = x626;
+        [ x614, x616, x618, x620, x622, x624, x626 ]
     };
 }
 
@@ -933,48 +894,19 @@ pub fn square(out1: &mut montgomery_domain_field_element, arg1: &montgomery_doma
     let mut x614: u64 = 0;
     let mut x615: u1 = 0;
     subborrowx_u64(&mut x614, &mut x615, 0x0, x599, 0x9ffffcd300000001);
-    let mut x616: u64 = 0;
-    let mut x617: u1 = 0;
-    subborrowx_u64(&mut x616, &mut x617, x615, x601, 0xa2a7e8c30006b945);
-    let mut x618: u64 = 0;
-    let mut x619: u1 = 0;
-    subborrowx_u64(&mut x618, &mut x619, x617, x603, 0xe4a7a5fe8fadffd6);
-    let mut x620: u64 = 0;
-    let mut x621: u1 = 0;
-    subborrowx_u64(&mut x620, &mut x621, x619, x605, 0x443f9a5cda8a6c7b);
-    let mut x622: u64 = 0;
-    let mut x623: u1 = 0;
-    subborrowx_u64(&mut x622, &mut x623, x621, x607, 0xa803ca76f439266f);
-    let mut x624: u64 = 0;
-    let mut x625: u1 = 0;
-    subborrowx_u64(&mut x624, &mut x625, x623, x609, 0x130e0000d7f70e4);
-    let mut x626: u64 = 0;
-    let mut x627: u1 = 0;
-    subborrowx_u64(&mut x626, &mut x627, x625, x611, 0x2400000000002400);
-    let mut x628: u64 = 0;
-    let mut x629: u1 = 0;
-    subborrowx_u64(&mut x628, &mut x629, x627, x613, (0x0 as u64));
-    let mut x630: u64 = 0;
-    cmovznz_u64(&mut x630, x629, x614, x599);
-    let mut x631: u64 = 0;
-    cmovznz_u64(&mut x631, x629, x616, x601);
-    let mut x632: u64 = 0;
-    cmovznz_u64(&mut x632, x629, x618, x603);
-    let mut x633: u64 = 0;
-    cmovznz_u64(&mut x633, x629, x620, x605);
-    let mut x634: u64 = 0;
-    cmovznz_u64(&mut x634, x629, x622, x607);
-    let mut x635: u64 = 0;
-    cmovznz_u64(&mut x635, x629, x624, x609);
-    let mut x636: u64 = 0;
-    cmovznz_u64(&mut x636, x629, x626, x611);
-    out1[0] = x630;
-    out1[1] = x631;
-    out1[2] = x632;
-    out1[3] = x633;
-    out1[4] = x634;
-    out1[5] = x635;
-    out1[6] = x636;
+    let (x616, x617) = x601.borrowing_sub(0xa2a7e8c30006b945, x615 == 1);
+    let (x618, x619) = x603.borrowing_sub(0xe4a7a5fe8fadffd6, x617);
+    let (x620, x621) = x605.borrowing_sub(0x443f9a5cda8a6c7b, x619);
+    let (x622, x623) = x607.borrowing_sub(0xa803ca76f439266f, x621);
+    let (x624, x625) = x609.borrowing_sub(0x130e0000d7f70e4, x623);
+    let (x626, x627) = x611.borrowing_sub(0x2400000000002400, x625);
+    let (_, x629) = x613.borrowing_sub(0x0u64, x627); //TODO simplify?
+
+    out1.0 = if x629 {
+        [ x599, x601, x603, x605, x607, x609, x611]
+    } else {
+        [ x614, x616, x618, x620, x622, x624, x626]
+    };
 }
 
 /// The function add adds two field elements in the Montgomery domain.
@@ -991,72 +923,27 @@ pub fn add(
     arg1: &montgomery_domain_field_element,
     arg2: &montgomery_domain_field_element,
 ) {
-    let mut x1: u64 = 0;
-    let mut x2: u1 = 0;
-    addcarryx_u64(&mut x1, &mut x2, 0x0, (arg1[0]), (arg2[0]));
-    let mut x3: u64 = 0;
-    let mut x4: u1 = 0;
-    addcarryx_u64(&mut x3, &mut x4, x2, (arg1[1]), (arg2[1]));
-    let mut x5: u64 = 0;
-    let mut x6: u1 = 0;
-    addcarryx_u64(&mut x5, &mut x6, x4, (arg1[2]), (arg2[2]));
-    let mut x7: u64 = 0;
-    let mut x8: u1 = 0;
-    addcarryx_u64(&mut x7, &mut x8, x6, (arg1[3]), (arg2[3]));
-    let mut x9: u64 = 0;
-    let mut x10: u1 = 0;
-    addcarryx_u64(&mut x9, &mut x10, x8, (arg1[4]), (arg2[4]));
-    let mut x11: u64 = 0;
-    let mut x12: u1 = 0;
-    addcarryx_u64(&mut x11, &mut x12, x10, (arg1[5]), (arg2[5]));
-    let mut x13: u64 = 0;
-    let mut x14: u1 = 0;
-    addcarryx_u64(&mut x13, &mut x14, x12, (arg1[6]), (arg2[6]));
-    let mut x15: u64 = 0;
-    let mut x16: u1 = 0;
-    subborrowx_u64(&mut x15, &mut x16, 0x0, x1, 0x9ffffcd300000001);
-    let mut x17: u64 = 0;
-    let mut x18: u1 = 0;
-    subborrowx_u64(&mut x17, &mut x18, x16, x3, 0xa2a7e8c30006b945);
-    let mut x19: u64 = 0;
-    let mut x20: u1 = 0;
-    subborrowx_u64(&mut x19, &mut x20, x18, x5, 0xe4a7a5fe8fadffd6);
-    let mut x21: u64 = 0;
-    let mut x22: u1 = 0;
-    subborrowx_u64(&mut x21, &mut x22, x20, x7, 0x443f9a5cda8a6c7b);
-    let mut x23: u64 = 0;
-    let mut x24: u1 = 0;
-    subborrowx_u64(&mut x23, &mut x24, x22, x9, 0xa803ca76f439266f);
-    let mut x25: u64 = 0;
-    let mut x26: u1 = 0;
-    subborrowx_u64(&mut x25, &mut x26, x24, x11, 0x130e0000d7f70e4);
-    let mut x27: u64 = 0;
-    let mut x28: u1 = 0;
-    subborrowx_u64(&mut x27, &mut x28, x26, x13, 0x2400000000002400);
-    let mut x29: u64 = 0;
-    let mut x30: u1 = 0;
-    subborrowx_u64(&mut x29, &mut x30, x28, (x14 as u64), (0x0 as u64));
-    let mut x31: u64 = 0;
-    cmovznz_u64(&mut x31, x30, x15, x1);
-    let mut x32: u64 = 0;
-    cmovznz_u64(&mut x32, x30, x17, x3);
-    let mut x33: u64 = 0;
-    cmovznz_u64(&mut x33, x30, x19, x5);
-    let mut x34: u64 = 0;
-    cmovznz_u64(&mut x34, x30, x21, x7);
-    let mut x35: u64 = 0;
-    cmovznz_u64(&mut x35, x30, x23, x9);
-    let mut x36: u64 = 0;
-    cmovznz_u64(&mut x36, x30, x25, x11);
-    let mut x37: u64 = 0;
-    cmovznz_u64(&mut x37, x30, x27, x13);
-    out1[0] = x31;
-    out1[1] = x32;
-    out1[2] = x33;
-    out1[3] = x34;
-    out1[4] = x35;
-    out1[5] = x36;
-    out1[6] = x37;
+    let (x1, x2) = arg1[0].overflowing_add(arg2[0]);
+    let (x3, x4) = (arg1[1]).carrying_add((arg2[1]), x2);
+    let (x5, x6) = (arg1[2]).carrying_add((arg2[2]), x4);
+    let (x7, x8) = (arg1[3]).carrying_add((arg2[3]), x6);
+    let (x9, x10) = (arg1[4]).carrying_add((arg2[4]), x8);
+    let (x11, x12) = (arg1[5]).carrying_add((arg2[5]), x10);
+    let (x13, x14) = (arg1[6]).carrying_add((arg2[6]), x12);
+    let (x15, x16) = x1.borrowing_sub(0x9ffffcd300000001, false);//todo optimise further?
+    let (x17, x18) = x3.borrowing_sub(0xa2a7e8c30006b945, x16);
+    let (x19, x20) = x5.borrowing_sub(0xe4a7a5fe8fadffd6, x18);
+    let (x21, x22) = x7.borrowing_sub(0x443f9a5cda8a6c7b, x20);
+    let (x23, x24) = x9.borrowing_sub(0xa803ca76f439266f, x22);
+    let (x25, x26) = x11.borrowing_sub(0x130e0000d7f70e4, x24);
+    let (x27, x28) = x13.borrowing_sub(0x2400000000002400, x26);
+    let (_, x30) = (x14 as u64).borrowing_sub(0_u64, x28);
+
+    out1.0 = if x30 {
+        [x1, x3, x5, x7, x9, x11, x13 ]
+    } else {
+        [x15, x17, x19, x21, x23, x25, x27 ]
+    }
 }
 
 /// The function sub subtracts two field elements in the Montgomery domain.
@@ -1073,57 +960,24 @@ pub fn sub(
     arg1: &montgomery_domain_field_element,
     arg2: &montgomery_domain_field_element,
 ) {
-    let mut x1: u64 = 0;
-    let mut x2: u1 = 0;
-    subborrowx_u64(&mut x1, &mut x2, 0x0, (arg1[0]), (arg2[0]));
-    let mut x3: u64 = 0;
-    let mut x4: u1 = 0;
-    subborrowx_u64(&mut x3, &mut x4, x2, (arg1[1]), (arg2[1]));
-    let mut x5: u64 = 0;
-    let mut x6: u1 = 0;
-    subborrowx_u64(&mut x5, &mut x6, x4, (arg1[2]), (arg2[2]));
-    let mut x7: u64 = 0;
-    let mut x8: u1 = 0;
-    subborrowx_u64(&mut x7, &mut x8, x6, (arg1[3]), (arg2[3]));
-    let mut x9: u64 = 0;
-    let mut x10: u1 = 0;
-    subborrowx_u64(&mut x9, &mut x10, x8, (arg1[4]), (arg2[4]));
-    let mut x11: u64 = 0;
-    let mut x12: u1 = 0;
-    subborrowx_u64(&mut x11, &mut x12, x10, (arg1[5]), (arg2[5]));
-    let mut x13: u64 = 0;
-    let mut x14: u1 = 0;
-    subborrowx_u64(&mut x13, &mut x14, x12, (arg1[6]), (arg2[6]));
+    let (x1, x2) = (arg1[0]).borrowing_sub((arg2[0]), false);//TODO: optimise
+    let (x3, x4) = (arg1[1]).borrowing_sub((arg2[1]), x2);
+    let (x5, x6) = (arg1[2]).borrowing_sub((arg2[2]), x4);
+    let (x7, x8) = (arg1[3]).borrowing_sub((arg2[3]), x6);
+    let (x9, x10) = (arg1[4]).borrowing_sub((arg2[4]), x8);
+    let (x11, x12) = (arg1[5]).borrowing_sub((arg2[5]), x10);
+    let (x13, x14) = (arg1[6]).borrowing_sub((arg2[6]), x12);
     let mut x15: u64 = 0;
-    cmovznz_u64(&mut x15, x14, (0x0 as u64), 0xffffffffffffffff);
-    let mut x16: u64 = 0;
-    let mut x17: u1 = 0;
-    addcarryx_u64(&mut x16, &mut x17, 0x0, x1, (x15 & 0x9ffffcd300000001));
-    let mut x18: u64 = 0;
-    let mut x19: u1 = 0;
-    addcarryx_u64(&mut x18, &mut x19, x17, x3, (x15 & 0xa2a7e8c30006b945));
-    let mut x20: u64 = 0;
-    let mut x21: u1 = 0;
-    addcarryx_u64(&mut x20, &mut x21, x19, x5, (x15 & 0xe4a7a5fe8fadffd6));
-    let mut x22: u64 = 0;
-    let mut x23: u1 = 0;
-    addcarryx_u64(&mut x22, &mut x23, x21, x7, (x15 & 0x443f9a5cda8a6c7b));
-    let mut x24: u64 = 0;
-    let mut x25: u1 = 0;
-    addcarryx_u64(&mut x24, &mut x25, x23, x9, (x15 & 0xa803ca76f439266f));
-    let mut x26: u64 = 0;
-    let mut x27: u1 = 0;
-    addcarryx_u64(&mut x26, &mut x27, x25, x11, (x15 & 0x130e0000d7f70e4));
-    let mut x28: u64 = 0;
-    let mut x29: u1 = 0;
-    addcarryx_u64(&mut x28, &mut x29, x27, x13, (x15 & 0x2400000000002400));
-    out1[0] = x16;
-    out1[1] = x18;
-    out1[2] = x20;
-    out1[3] = x22;
-    out1[4] = x24;
-    out1[5] = x26;
-    out1[6] = x28;
+    cmovznz_u64(&mut x15, x14 as u1, 0x0_u64, 0xffffffffffffffff);
+    let (x16, x17) = x1.overflowing_add( (x15 & 0x9ffffcd300000001));
+    let (x18, x19) = x3.carrying_add( (x15 & 0xa2a7e8c30006b945), x17);
+    let (x20, x21) = x5.carrying_add((x15 & 0xe4a7a5fe8fadffd6), x19);
+    let (x22, x23) = x7.carrying_add((x15 & 0x443f9a5cda8a6c7b), x21);
+    let (x24, x25) = x9.carrying_add((x15 & 0xa803ca76f439266f), x23);
+    let (x26, x27) = x11.carrying_add((x15 & 0x130e0000d7f70e4), x25);
+    let (x28, _) = x13.carrying_add( (x15 & 0x2400000000002400), x27);
+
+    out1.0 = [x16, x18, x20, x22, x24, x26, x28];
 }
 
 /// The function opp negates a field element in the Montgomery domain.
@@ -1158,34 +1012,15 @@ pub fn opp(out1: &mut montgomery_domain_field_element, arg1: &montgomery_domain_
     subborrowx_u64(&mut x13, &mut x14, x12, (0x0 as u64), (arg1[6]));
     let mut x15: u64 = 0;
     cmovznz_u64(&mut x15, x14, (0x0 as u64), 0xffffffffffffffff);
-    let mut x16: u64 = 0;
-    let mut x17: u1 = 0;
-    addcarryx_u64(&mut x16, &mut x17, 0x0, x1, (x15 & 0x9ffffcd300000001));
-    let mut x18: u64 = 0;
-    let mut x19: u1 = 0;
-    addcarryx_u64(&mut x18, &mut x19, x17, x3, (x15 & 0xa2a7e8c30006b945));
-    let mut x20: u64 = 0;
-    let mut x21: u1 = 0;
-    addcarryx_u64(&mut x20, &mut x21, x19, x5, (x15 & 0xe4a7a5fe8fadffd6));
-    let mut x22: u64 = 0;
-    let mut x23: u1 = 0;
-    addcarryx_u64(&mut x22, &mut x23, x21, x7, (x15 & 0x443f9a5cda8a6c7b));
-    let mut x24: u64 = 0;
-    let mut x25: u1 = 0;
-    addcarryx_u64(&mut x24, &mut x25, x23, x9, (x15 & 0xa803ca76f439266f));
-    let mut x26: u64 = 0;
-    let mut x27: u1 = 0;
-    addcarryx_u64(&mut x26, &mut x27, x25, x11, (x15 & 0x130e0000d7f70e4));
-    let mut x28: u64 = 0;
-    let mut x29: u1 = 0;
-    addcarryx_u64(&mut x28, &mut x29, x27, x13, (x15 & 0x2400000000002400));
-    out1[0] = x16;
-    out1[1] = x18;
-    out1[2] = x20;
-    out1[3] = x22;
-    out1[4] = x24;
-    out1[5] = x26;
-    out1[6] = x28;
+
+    let (x16, x17) = x1.overflowing_add((x15 & 0x9ffffcd300000001));
+    let (x18, x19) = x3.carrying_add((x15 & 0xa2a7e8c30006b945), x17);
+    let (x20, x21) = x5.carrying_add((x15 & 0xe4a7a5fe8fadffd6), x19);
+    let (x22, x23) = x7.carrying_add((x15 & 0x443f9a5cda8a6c7b), x21);
+    let (x24, x25) = x9.carrying_add((x15 & 0xa803ca76f439266f), x23);
+    let (x26, x27) = x11.carrying_add((x15 & 0x130e0000d7f70e4), x25);
+    let (x28, _x29) = x13.carrying_add((x15 & 0x2400000000002400), x27);
+    out1.0 = [x16, x18, x20, x22, x24, x26, x28 ];
 }
 
 /// The function from_montgomery translates a field element out of the Montgomery domain.
@@ -1201,296 +1036,204 @@ pub fn from_montgomery(
     arg1: &montgomery_domain_field_element,
 ) {
     let x1: u64 = (arg1[0]);
-let (x2, _x3) = x1.widening_mul(0x9ffffcd2ffffffff);
-let (x4, x5) = x2.widening_mul(0x2400000000002400);
-let (x6, x7) = x2.widening_mul(0x130e0000d7f70e4);
-let (x8, x9) = x2.widening_mul(0xa803ca76f439266f);
-let (x10, x11) = x2.widening_mul(0x443f9a5cda8a6c7b);
-let (x12, x13) = x2.widening_mul(0xe4a7a5fe8fadffd6);
-let (x14, x15) = x2.widening_mul(0xa2a7e8c30006b945);
-let (x16, x17) = x2.widening_mul(0x9ffffcd300000001);
-let (x18, x19) = x17.overflowing_add(x14);
-let (x20, x21) = x15.carrying_add(x12, x19);
-let (x22, x23) = x13.carrying_add(x10, x21);
-let (x24, x25) = x11.carrying_add(x8, x23);
-let (x26, x27) = x9.carrying_add(x6, x25);
-let (x28, x29) = x7.carrying_add(x4, x27);
-let (_x30, x31) = x1.overflowing_add(x16);
-let (x32, x33) = x18.overflowing_add(x31 as u64);
-let (x34, x35) = x20.overflowing_add(x33 as u64);
-let (x36, x37) = x22.overflowing_add(x35 as u64);
-let (x38, x39) = x24.overflowing_add(x37 as u64);
-let (x40, x41) = x26.overflowing_add(x39 as u64);
-let (x42, x43) = x28.overflowing_add(x41 as u64);
-let (x44, x45) = x32.overflowing_add(arg1[1]);
-let (x46, x47) = x34.overflowing_add(x45 as u64);
-let (x48, x49) = x36.overflowing_add(x47 as u64);
-let (x50, x51) = x38.overflowing_add(x49 as u64);
-let (x52, x53) = x40.overflowing_add(x51 as u64);
-let (x54, x55) = x42.overflowing_add(x53 as u64);
-let (x56, _x57) = x44.widening_mul(0x9ffffcd2ffffffff);
-let (x58, x59) = x56.widening_mul(0x2400000000002400);
-let (x60, x61) = x56.widening_mul(0x130e0000d7f70e4);
-let (x62, x63) = x56.widening_mul(0xa803ca76f439266f);
-let (x64, x65) = x56.widening_mul(0x443f9a5cda8a6c7b);
-let (x66, x67) = x56.widening_mul(0xe4a7a5fe8fadffd6);
-let (x68, x69) = x56.widening_mul(0xa2a7e8c30006b945);
-let (x70, x71) = x56.widening_mul(0x9ffffcd300000001);
-let (x72, x73) = x71.overflowing_add(x68);
-let (x74, x75) = x69.carrying_add(x66, x73);
-let (x76, x77) = x67.carrying_add(x64, x75);
-let (x78, x79) = x65.carrying_add(x62, x77);
-let (x80, x81) = x63.carrying_add(x60, x79);
-let (x82, x83) = x61.carrying_add(x58, x81);
-let (_x84, x85) = x44.overflowing_add(x70);
-let (x86, x87) = x46.carrying_add(x72, x85);
-let (x88, x89) = x48.carrying_add(x74, x87);
-let (x90, x91) = x50.carrying_add(x76, x89);
-let (x92, x93) = x52.carrying_add(x78, x91);
-let (x94, x95) = x54.carrying_add(x80, x93);
+    let (x2, _x3) = x1.widening_mul(0x9ffffcd2ffffffff);
+    let (x4, x5) = x2.widening_mul(0x2400000000002400);
+    let (x6, x7) = x2.widening_mul(0x130e0000d7f70e4);
+    let (x8, x9) = x2.widening_mul(0xa803ca76f439266f);
+    let (x10, x11) = x2.widening_mul(0x443f9a5cda8a6c7b);
+    let (x12, x13) = x2.widening_mul(0xe4a7a5fe8fadffd6);
+    let (x14, x15) = x2.widening_mul(0xa2a7e8c30006b945);
+    let (x16, x17) = x2.widening_mul(0x9ffffcd300000001);
+    let (x18, x19) = x17.overflowing_add(x14);
+    let (x20, x21) = x15.carrying_add(x12, x19);
+    let (x22, x23) = x13.carrying_add(x10, x21);
+    let (x24, x25) = x11.carrying_add(x8, x23);
+    let (x26, x27) = x9.carrying_add(x6, x25);
+    let (x28, x29) = x7.carrying_add(x4, x27);
+    let (_x30, x31) = x1.overflowing_add(x16);
+    let (x32, x33) = x18.overflowing_add(x31 as u64);
+    let (x34, x35) = x20.overflowing_add(x33 as u64);
+    let (x36, x37) = x22.overflowing_add(x35 as u64);
+    let (x38, x39) = x24.overflowing_add(x37 as u64);
+    let (x40, x41) = x26.overflowing_add(x39 as u64);
+    let (x42, x43) = x28.overflowing_add(x41 as u64);
+    let (x44, x45) = x32.overflowing_add(arg1[1]);
+    let (x46, x47) = x34.overflowing_add(x45 as u64);
+    let (x48, x49) = x36.overflowing_add(x47 as u64);
+    let (x50, x51) = x38.overflowing_add(x49 as u64);
+    let (x52, x53) = x40.overflowing_add(x51 as u64);
+    let (x54, x55) = x42.overflowing_add(x53 as u64);
+    let (x56, _x57) = x44.widening_mul(0x9ffffcd2ffffffff);
+    let (x58, x59) = x56.widening_mul(0x2400000000002400);
+    let (x60, x61) = x56.widening_mul(0x130e0000d7f70e4);
+    let (x62, x63) = x56.widening_mul(0xa803ca76f439266f);
+    let (x64, x65) = x56.widening_mul(0x443f9a5cda8a6c7b);
+    let (x66, x67) = x56.widening_mul(0xe4a7a5fe8fadffd6);
+    let (x68, x69) = x56.widening_mul(0xa2a7e8c30006b945);
+    let (x70, x71) = x56.widening_mul(0x9ffffcd300000001);
+    let (x72, x73) = x71.overflowing_add(x68);
+    let (x74, x75) = x69.carrying_add(x66, x73);
+    let (x76, x77) = x67.carrying_add(x64, x75);
+    let (x78, x79) = x65.carrying_add(x62, x77);
+    let (x80, x81) = x63.carrying_add(x60, x79);
+    let (x82, x83) = x61.carrying_add(x58, x81);
+    let (_x84, x85) = x44.overflowing_add(x70);
+    let (x86, x87) = x46.carrying_add(x72, x85);
+    let (x88, x89) = x48.carrying_add(x74, x87);
+    let (x90, x91) = x50.carrying_add(x76, x89);
+    let (x92, x93) = x52.carrying_add(x78, x91);
+    let (x94, x95) = x54.carrying_add(x80, x93);
     let (x96, x97) = x82.carrying_add(((x55 as u64) + ((x43 as u64) + ((x29 as u64) + x5))), x95);
-    let mut x98: u64 = 0;
-    let mut x99: u1 = 0;
-    addcarryx_u64(&mut x98, &mut x99, 0x0, x86, (arg1[2]));
-    let mut x100: u64 = 0;
-    let mut x101: u1 = 0;
-    addcarryx_u64(&mut x100, &mut x101, x99, x88, (0x0 as u64));
-    let mut x102: u64 = 0;
-    let mut x103: u1 = 0;
-    addcarryx_u64(&mut x102, &mut x103, x101, x90, (0x0 as u64));
-    let mut x104: u64 = 0;
-    let mut x105: u1 = 0;
-    addcarryx_u64(&mut x104, &mut x105, x103, x92, (0x0 as u64));
-    let mut x106: u64 = 0;
-    let mut x107: u1 = 0;
-    addcarryx_u64(&mut x106, &mut x107, x105, x94, (0x0 as u64));
-    let mut x108: u64 = 0;
-    let mut x109: u1 = 0;
-    addcarryx_u64(&mut x108, &mut x109, x107, x96, (0x0 as u64));
-let (x110, _x111) = x98.widening_mul(0x9ffffcd2ffffffff);
-let (x112, x113) = x110.widening_mul(0x2400000000002400);
-let (x114, x115) = x110.widening_mul(0x130e0000d7f70e4);
-let (x116, x117) = x110.widening_mul(0xa803ca76f439266f);
-let (x118, x119) = x110.widening_mul(0x443f9a5cda8a6c7b);
-let (x120, x121) = x110.widening_mul(0xe4a7a5fe8fadffd6);
-let (x122, x123) = x110.widening_mul(0xa2a7e8c30006b945);
-let (x124, x125) = x110.widening_mul(0x9ffffcd300000001);
-let (x126, x127) = x125.overflowing_add(x122);
-let (x128, x129) = x123.carrying_add(x120, x127);
-let (x130, x131) = x121.carrying_add(x118, x129);
-let (x132, x133) = x119.carrying_add(x116, x131);
-let (x134, x135) = x117.carrying_add(x114, x133);
-let (x136, x137) = x115.carrying_add(x112, x135);
-let (_x138, x139) = x98.overflowing_add(x124);
-let (x140, x141) = x100.carrying_add(x126, x139);
-let (x142, x143) = x102.carrying_add(x128, x141);
-let (x144, x145) = x104.carrying_add(x130, x143);
-let (x146, x147) = x106.carrying_add(x132, x145);
-let (x148, x149) = x108.carrying_add(x134, x147);
+    let (x98, x99) = (arg1[2]).overflowing_add(x86);
+    let (x100, x101) = x88.overflowing_add(x99 as u64);
+    let (x102, x103) = (x101 as u64).overflowing_add(x90);
+    let (x104, x105) = (x103 as u64).overflowing_add(x92);
+    let (x106, x107) = (x105 as u64).overflowing_add(x94);
+    let (x108, x109) = (x107 as u64).overflowing_add(x96);
+    let (x110, _x111) = x98.widening_mul(0x9ffffcd2ffffffff);
+    let (x112, x113) = x110.widening_mul(0x2400000000002400);
+    let (x114, x115) = x110.widening_mul(0x130e0000d7f70e4);
+    let (x116, x117) = x110.widening_mul(0xa803ca76f439266f);
+    let (x118, x119) = x110.widening_mul(0x443f9a5cda8a6c7b);
+    let (x120, x121) = x110.widening_mul(0xe4a7a5fe8fadffd6);
+    let (x122, x123) = x110.widening_mul(0xa2a7e8c30006b945);
+    let (x124, x125) = x110.widening_mul(0x9ffffcd300000001);
+    let (x126, x127) = x125.overflowing_add(x122);
+    let (x128, x129) = x123.carrying_add(x120, x127);
+    let (x130, x131) = x121.carrying_add(x118, x129);
+    let (x132, x133) = x119.carrying_add(x116, x131);
+    let (x134, x135) = x117.carrying_add(x114, x133);
+    let (x136, x137) = x115.carrying_add(x112, x135);
+    let (_x138, x139) = x98.overflowing_add(x124);
+    let (x140, x141) = x100.carrying_add(x126, x139);
+    let (x142, x143) = x102.carrying_add(x128, x141);
+    let (x144, x145) = x104.carrying_add(x130, x143);
+    let (x146, x147) = x106.carrying_add(x132, x145);
+    let (x148, x149) = x108.carrying_add(x134, x147);
     let (x150, x151) = x136.carrying_add(((x109 as u64) + ((x97 as u64) + ((x83 as u64) + x59))), x149);
-    let mut x152: u64 = 0;
-    let mut x153: u1 = 0;
-    addcarryx_u64(&mut x152, &mut x153, 0x0, x140, (arg1[3]));
-    let mut x154: u64 = 0;
-    let mut x155: u1 = 0;
-    addcarryx_u64(&mut x154, &mut x155, x153, x142, (0x0 as u64));
-    let mut x156: u64 = 0;
-    let mut x157: u1 = 0;
-    addcarryx_u64(&mut x156, &mut x157, x155, x144, (0x0 as u64));
-    let mut x158: u64 = 0;
-    let mut x159: u1 = 0;
-    addcarryx_u64(&mut x158, &mut x159, x157, x146, (0x0 as u64));
-    let mut x160: u64 = 0;
-    let mut x161: u1 = 0;
-    addcarryx_u64(&mut x160, &mut x161, x159, x148, (0x0 as u64));
-    let mut x162: u64 = 0;
-    let mut x163: u1 = 0;
-    addcarryx_u64(&mut x162, &mut x163, x161, x150, (0x0 as u64));
-let (x164, _x165) = x152.widening_mul(0x9ffffcd2ffffffff);
-let (x166, x167) = x164.widening_mul(0x2400000000002400);
-let (x168, x169) = x164.widening_mul(0x130e0000d7f70e4);
-let (x170, x171) = x164.widening_mul(0xa803ca76f439266f);
-let (x172, x173) = x164.widening_mul(0x443f9a5cda8a6c7b);
-let (x174, x175) = x164.widening_mul(0xe4a7a5fe8fadffd6);
-let (x176, x177) = x164.widening_mul(0xa2a7e8c30006b945);
-let (x178, x179) = x164.widening_mul(0x9ffffcd300000001);
-let (x180, x181) = x179.overflowing_add(x176);
-let (x182, x183) = x177.carrying_add(x174, x181);
-let (x184, x185) = x175.carrying_add(x172, x183);
-let (x186, x187) = x173.carrying_add(x170, x185);
-let (x188, x189) = x171.carrying_add(x168, x187);
-let (x190, x191) = x169.carrying_add(x166, x189);
-let (_x192, x193) = x152.overflowing_add(x178);
-let (x194, x195) = x154.carrying_add(x180, x193);
-let (x196, x197) = x156.carrying_add(x182, x195);
-let (x198, x199) = x158.carrying_add(x184, x197);
-let (x200, x201) = x160.carrying_add(x186, x199);
-let (x202, x203) = x162.carrying_add(x188, x201);
+    let (x152, x153) = x140.overflowing_add(arg1[3]);
+    let (x154, x155) = (x153 as u64).overflowing_add(x142);
+    let (x156, x157) = (x155 as u64).overflowing_add(x144);
+    let (x158, x159) = (x157 as u64).overflowing_add(x146);
+    let (x160, x161) = (x159 as u64).overflowing_add(x148);
+    let (x162, x163) = (x161 as u64).overflowing_add(x150);
+    let (x164, _x165) = x152.widening_mul(0x9ffffcd2ffffffff);
+    let (x166, x167) = x164.widening_mul(0x2400000000002400);
+    let (x168, x169) = x164.widening_mul(0x130e0000d7f70e4);
+    let (x170, x171) = x164.widening_mul(0xa803ca76f439266f);
+    let (x172, x173) = x164.widening_mul(0x443f9a5cda8a6c7b);
+    let (x174, x175) = x164.widening_mul(0xe4a7a5fe8fadffd6);
+    let (x176, x177) = x164.widening_mul(0xa2a7e8c30006b945);
+    let (x178, x179) = x164.widening_mul(0x9ffffcd300000001);
+    let (x180, x181) = x179.overflowing_add(x176);
+    let (x182, x183) = x177.carrying_add(x174, x181);
+    let (x184, x185) = x175.carrying_add(x172, x183);
+    let (x186, x187) = x173.carrying_add(x170, x185);
+    let (x188, x189) = x171.carrying_add(x168, x187);
+    let (x190, x191) = x169.carrying_add(x166, x189);
+    let (_x192, x193) = x152.overflowing_add(x178);
+    let (x194, x195) = x154.carrying_add(x180, x193);
+    let (x196, x197) = x156.carrying_add(x182, x195);
+    let (x198, x199) = x158.carrying_add(x184, x197);
+    let (x200, x201) = x160.carrying_add(x186, x199);
+    let (x202, x203) = x162.carrying_add(x188, x201);
     let (x204, x205) = x190.carrying_add(((x163 as u64) + ((x151 as u64) + ((x137 as u64) + x113))), x203);
-    let mut x206: u64 = 0;
-    let mut x207: u1 = 0;
-    addcarryx_u64(&mut x206, &mut x207, 0x0, x194, (arg1[4]));
-    let mut x208: u64 = 0;
-    let mut x209: u1 = 0;
-    addcarryx_u64(&mut x208, &mut x209, x207, x196, (0x0 as u64));
-    let mut x210: u64 = 0;
-    let mut x211: u1 = 0;
-    addcarryx_u64(&mut x210, &mut x211, x209, x198, (0x0 as u64));
-    let mut x212: u64 = 0;
-    let mut x213: u1 = 0;
-    addcarryx_u64(&mut x212, &mut x213, x211, x200, (0x0 as u64));
-    let mut x214: u64 = 0;
-    let mut x215: u1 = 0;
-    addcarryx_u64(&mut x214, &mut x215, x213, x202, (0x0 as u64));
-    let mut x216: u64 = 0;
-    let mut x217: u1 = 0;
-    addcarryx_u64(&mut x216, &mut x217, x215, x204, (0x0 as u64));
-let (x218, _x219) = x206.widening_mul(0x9ffffcd2ffffffff);
-let (x220, x221) = x218.widening_mul(0x2400000000002400);
-let (x222, x223) = x218.widening_mul(0x130e0000d7f70e4);
-let (x224, x225) = x218.widening_mul(0xa803ca76f439266f);
-let (x226, x227) = x218.widening_mul(0x443f9a5cda8a6c7b);
-let (x228, x229) = x218.widening_mul(0xe4a7a5fe8fadffd6);
-let (x230, x231) = x218.widening_mul(0xa2a7e8c30006b945);
-let (x232, x233) = x218.widening_mul(0x9ffffcd300000001);
-let (x234, x235) = x233.overflowing_add(x230);
-let (x236, x237) = x231.carrying_add(x228, x235);
-let (x238, x239) = x229.carrying_add(x226, x237);
-let (x240, x241) = x227.carrying_add(x224, x239);
-let (x242, x243) = x225.carrying_add(x222, x241);
-let (x244, x245) = x223.carrying_add(x220, x243);
-let (_x246, x247) = x206.overflowing_add(x232);
-let (x248, x249) = x208.carrying_add(x234, x247);
-let (x250, x251) = x210.carrying_add(x236, x249);
-let (x252, x253) = x212.carrying_add(x238, x251);
-let (x254, x255) = x214.carrying_add(x240, x253);
-let (x256, x257) = x216.carrying_add(x242, x255);
+    let (x206, x207) = x194.overflowing_add(arg1[4]);
+    let (x208, x209) = (x207 as u64).overflowing_add(x196);
+    let (x210, x211) = (x209 as u64).overflowing_add(x198);
+    let (x212, x213) = (x211 as u64).overflowing_add(x200);
+    let (x214, x215) = (x213 as u64).overflowing_add(x202);
+    let (x216, x217) = (x215 as u64).overflowing_add(x204);
+    let (x218, _x219) = x206.widening_mul(0x9ffffcd2ffffffff);
+    let (x220, x221) = x218.widening_mul(0x2400000000002400);
+    let (x222, x223) = x218.widening_mul(0x130e0000d7f70e4);
+    let (x224, x225) = x218.widening_mul(0xa803ca76f439266f);
+    let (x226, x227) = x218.widening_mul(0x443f9a5cda8a6c7b);
+    let (x228, x229) = x218.widening_mul(0xe4a7a5fe8fadffd6);
+    let (x230, x231) = x218.widening_mul(0xa2a7e8c30006b945);
+    let (x232, x233) = x218.widening_mul(0x9ffffcd300000001);
+    let (x234, x235) = x233.overflowing_add(x230);
+    let (x236, x237) = x231.carrying_add(x228, x235);
+    let (x238, x239) = x229.carrying_add(x226, x237);
+    let (x240, x241) = x227.carrying_add(x224, x239);
+    let (x242, x243) = x225.carrying_add(x222, x241);
+    let (x244, x245) = x223.carrying_add(x220, x243);
+    let (_x246, x247) = x206.overflowing_add(x232);
+    let (x248, x249) = x208.carrying_add(x234, x247);
+    let (x250, x251) = x210.carrying_add(x236, x249);
+    let (x252, x253) = x212.carrying_add(x238, x251);
+    let (x254, x255) = x214.carrying_add(x240, x253);
+    let (x256, x257) = x216.carrying_add(x242, x255);
     let (x258, x259) = x244.carrying_add(((x217 as u64) + ((x205 as u64) + ((x191 as u64) + x167))), x257);
-
-    let mut x260: u64 = 0;
-    let mut x261: u1 = 0;
-    addcarryx_u64(&mut x260, &mut x261, 0x0, x248, (arg1[5]));
-    let mut x262: u64 = 0;
-    let mut x263: u1 = 0;
-    addcarryx_u64(&mut x262, &mut x263, x261, x250, (0x0 as u64));
-    let mut x264: u64 = 0;
-    let mut x265: u1 = 0;
-    addcarryx_u64(&mut x264, &mut x265, x263, x252, (0x0 as u64));
-    let mut x266: u64 = 0;
-    let mut x267: u1 = 0;
-    addcarryx_u64(&mut x266, &mut x267, x265, x254, (0x0 as u64));
-    let mut x268: u64 = 0;
-    let mut x269: u1 = 0;
-    addcarryx_u64(&mut x268, &mut x269, x267, x256, (0x0 as u64));
-    let mut x270: u64 = 0;
-    let mut x271: u1 = 0;
-    addcarryx_u64(&mut x270, &mut x271, x269, x258, (0x0 as u64));
-let (x272, _x273) = x260.widening_mul(0x9ffffcd2ffffffff);
-let (x274, x275) = x272.widening_mul(0x2400000000002400);
-let (x276, x277) = x272.widening_mul(0x130e0000d7f70e4);
-let (x278, x279) = x272.widening_mul(0xa803ca76f439266f);
-let (x280, x281) = x272.widening_mul(0x443f9a5cda8a6c7b);
-let (x282, x283) = x272.widening_mul(0xe4a7a5fe8fadffd6);
-let (x284, x285) = x272.widening_mul(0xa2a7e8c30006b945);
-let (x286, x287) = x272.widening_mul(0x9ffffcd300000001);
-let (x288, x289) = x287.overflowing_add(x284);
-let (x290, x291) = x285.carrying_add(x282, x289);
-let (x292, x293) = x283.carrying_add(x280, x291);
-let (x294, x295) = x281.carrying_add(x278, x293);
-let (x296, x297) = x279.carrying_add(x276, x295);
-let (x298, x299) = x277.carrying_add(x274, x297);
-let (_x300, x301) = x260.overflowing_add(x286);
-let (x302, x303) = x262.carrying_add(x288, x301);
-let (x304, x305) = x264.carrying_add(x290, x303);
-let (x306, x307) = x266.carrying_add(x292, x305);
-let (x308, x309) = x268.carrying_add(x294, x307);
-let (x310, x311) = x270.carrying_add(x296, x309);
+    let (x260, x261) = (x248 as u64).overflowing_add(arg1[5]);
+    let (x262, x263) = (x261 as u64).overflowing_add(x250);
+    let (x264, x265) = (x263 as u64).overflowing_add(x252);
+    let (x266, x267) = (x265 as u64).overflowing_add(x254);
+    let (x268, x269) = (x267 as u64).overflowing_add(x256);
+    let (x270, x271) = (x269 as u64).overflowing_add(x258);
+    let (x272, _x273) = x260.widening_mul(0x9ffffcd2ffffffff);
+    let (x274, x275) = x272.widening_mul(0x2400000000002400);
+    let (x276, x277) = x272.widening_mul(0x130e0000d7f70e4);
+    let (x278, x279) = x272.widening_mul(0xa803ca76f439266f);
+    let (x280, x281) = x272.widening_mul(0x443f9a5cda8a6c7b);
+    let (x282, x283) = x272.widening_mul(0xe4a7a5fe8fadffd6);
+    let (x284, x285) = x272.widening_mul(0xa2a7e8c30006b945);
+    let (x286, x287) = x272.widening_mul(0x9ffffcd300000001);
+    let (x288, x289) = x287.overflowing_add(x284);
+    let (x290, x291) = x285.carrying_add(x282, x289);
+    let (x292, x293) = x283.carrying_add(x280, x291);
+    let (x294, x295) = x281.carrying_add(x278, x293);
+    let (x296, x297) = x279.carrying_add(x276, x295);
+    let (x298, x299) = x277.carrying_add(x274, x297);
+    let (_x300, x301) = x260.overflowing_add(x286);
+    let (x302, x303) = x262.carrying_add(x288, x301);
+    let (x304, x305) = x264.carrying_add(x290, x303);
+    let (x306, x307) = x266.carrying_add(x292, x305);
+    let (x308, x309) = x268.carrying_add(x294, x307);
+    let (x310, x311) = x270.carrying_add(x296, x309);
     let (x312, x313) = x298.carrying_add(((x271 as u64) + ((x259 as u64) + ((x245 as u64) + x221))), x311);
-    let mut x314: u64 = 0;
-    let mut x315: u1 = 0;
-    addcarryx_u64(&mut x314, &mut x315, 0x0, x302, (arg1[6]));
-    let mut x316: u64 = 0;
-    let mut x317: u1 = 0;
-    addcarryx_u64(&mut x316, &mut x317, x315, x304, (0x0 as u64));
-    let mut x318: u64 = 0;
-    let mut x319: u1 = 0;
-    addcarryx_u64(&mut x318, &mut x319, x317, x306, (0x0 as u64));
-    let mut x320: u64 = 0;
-    let mut x321: u1 = 0;
-    addcarryx_u64(&mut x320, &mut x321, x319, x308, (0x0 as u64));
-    let mut x322: u64 = 0;
-    let mut x323: u1 = 0;
-    addcarryx_u64(&mut x322, &mut x323, x321, x310, (0x0 as u64));
-    let mut x324: u64 = 0;
-    let mut x325: u1 = 0;
-    addcarryx_u64(&mut x324, &mut x325, x323, x312, (0x0 as u64));
-let (x326, _x327) = x314.widening_mul(0x9ffffcd2ffffffff);
-let (x328, x329) = x326.widening_mul(0x2400000000002400);
-let (x330, x331) = x326.widening_mul(0x130e0000d7f70e4);
-let (x332, x333) = x326.widening_mul(0xa803ca76f439266f);
-let (x334, x335) = x326.widening_mul(0x443f9a5cda8a6c7b);
-let (x336, x337) = x326.widening_mul(0xe4a7a5fe8fadffd6);
-let (x338, x339) = x326.widening_mul(0xa2a7e8c30006b945);
-let (x340, x341) = x326.widening_mul(0x9ffffcd300000001);
-let (x342, x343) = x341.overflowing_add(x338);
-let (x344, x345) = x339.carrying_add(x336, x343);
-let (x346, x347) = x337.carrying_add(x334, x345);
-let (x348, x349) = x335.carrying_add(x332, x347);
-let (x350, x351) = x333.carrying_add(x330, x349);
-let (x352, x353) = x331.carrying_add(x328, x351);
-let (_x354, x355) = x314.overflowing_add(x340);
-let (x356, x357) = x316.carrying_add(x342, x355);
-let (x358, x359) = x318.carrying_add(x344, x357);
-let (x360, x361) = x320.carrying_add(x346, x359);
-let (x362, x363) = x322.carrying_add(x348, x361);
-let (x364, x365) = x324.carrying_add(x350, x363);
+    let (x314, x315) = (x302 as u64).overflowing_add(arg1[6]);
+    let (x316, x317) = (x315 as u64).overflowing_add(x304);
+    let (x318, x319) = (x317 as u64).overflowing_add(x306);
+    let (x320, x321) = (x319 as u64).overflowing_add(x308);
+    let (x322, x323) = (x321 as u64).overflowing_add(x310);
+    let (x324, x325) = (x323 as u64).overflowing_add(x312);
+    let (x326, _x327) = x314.widening_mul(0x9ffffcd2ffffffff);
+    let (x328, x329) = x326.widening_mul(0x2400000000002400);
+    let (x330, x331) = x326.widening_mul(0x130e0000d7f70e4);
+    let (x332, x333) = x326.widening_mul(0xa803ca76f439266f);
+    let (x334, x335) = x326.widening_mul(0x443f9a5cda8a6c7b);
+    let (x336, x337) = x326.widening_mul(0xe4a7a5fe8fadffd6);
+    let (x338, x339) = x326.widening_mul(0xa2a7e8c30006b945);
+    let (x340, x341) = x326.widening_mul(0x9ffffcd300000001);
+    let (x342, x343) = x341.overflowing_add(x338);
+    let (x344, x345) = x339.carrying_add(x336, x343);
+    let (x346, x347) = x337.carrying_add(x334, x345);
+    let (x348, x349) = x335.carrying_add(x332, x347);
+    let (x350, x351) = x333.carrying_add(x330, x349);
+    let (x352, x353) = x331.carrying_add(x328, x351);
+    let (_x354, x355) = x314.overflowing_add(x340);
+    let (x356, x357) = x316.carrying_add(x342, x355);
+    let (x358, x359) = x318.carrying_add(x344, x357);
+    let (x360, x361) = x320.carrying_add(x346, x359);
+    let (x362, x363) = x322.carrying_add(x348, x361);
+    let (x364, x365) = x324.carrying_add(x350, x363);
     let (x366, x367) = x352.carrying_add(((x325 as u64) + ((x313 as u64) + ((x299 as u64) + x275))), x365);
     let x368: u64 = ((x367 as u64) + ((x353 as u64) + x329));
-    let mut x369: u64 = 0;
-    let mut x370: u1 = 0;
-    subborrowx_u64(&mut x369, &mut x370, 0x0, x356, 0x9ffffcd300000001);
-    let mut x371: u64 = 0;
-    let mut x372: u1 = 0;
-    subborrowx_u64(&mut x371, &mut x372, x370, x358, 0xa2a7e8c30006b945);
-    let mut x373: u64 = 0;
-    let mut x374: u1 = 0;
-    subborrowx_u64(&mut x373, &mut x374, x372, x360, 0xe4a7a5fe8fadffd6);
-    let mut x375: u64 = 0;
-    let mut x376: u1 = 0;
-    subborrowx_u64(&mut x375, &mut x376, x374, x362, 0x443f9a5cda8a6c7b);
-    let mut x377: u64 = 0;
-    let mut x378: u1 = 0;
-    subborrowx_u64(&mut x377, &mut x378, x376, x364, 0xa803ca76f439266f);
-    let mut x379: u64 = 0;
-    let mut x380: u1 = 0;
-    subborrowx_u64(&mut x379, &mut x380, x378, x366, 0x130e0000d7f70e4);
-    let mut x381: u64 = 0;
-    let mut x382: u1 = 0;
-    subborrowx_u64(&mut x381, &mut x382, x380, x368, 0x2400000000002400);
-    let mut x383: u64 = 0;
-    let mut x384: u1 = 0;
-    subborrowx_u64(&mut x383, &mut x384, x382, (0x0 as u64), (0x0 as u64));
-    let mut x385: u64 = 0;
-    cmovznz_u64(&mut x385, x384, x369, x356);
-    let mut x386: u64 = 0;
-    cmovznz_u64(&mut x386, x384, x371, x358);
-    let mut x387: u64 = 0;
-    cmovznz_u64(&mut x387, x384, x373, x360);
-    let mut x388: u64 = 0;
-    cmovznz_u64(&mut x388, x384, x375, x362);
-    let mut x389: u64 = 0;
-    cmovznz_u64(&mut x389, x384, x377, x364);
-    let mut x390: u64 = 0;
-    cmovznz_u64(&mut x390, x384, x379, x366);
-    let mut x391: u64 = 0;
-    cmovznz_u64(&mut x391, x384, x381, x368);
-    out1[0] = x385;
-    out1[1] = x386;
-    out1[2] = x387;
-    out1[3] = x388;
-    out1[4] = x389;
-    out1[5] = x390;
-    out1[6] = x391;
+    let (x369, x370) = x356.borrowing_sub(0x9ffffcd300000001, false);
+    let (x371, x372) = x358.borrowing_sub(0xa2a7e8c30006b945, x370);
+    let (x373, x374) = x360.borrowing_sub(0xe4a7a5fe8fadffd6, x372);
+    let (x375, x376) = x362.borrowing_sub(0x443f9a5cda8a6c7b, x374);
+    let (x377, x378) = x364.borrowing_sub(0xa803ca76f439266f, x376);
+    let (x379, x380) = x366.borrowing_sub(0x130e0000d7f70e4, x378);
+    let (x381, x382) = x368.borrowing_sub(0x2400000000002400, x380);
+    let (_x383, x384) = (0x0 as u64).borrowing_sub((0x0 as u64), x382); //TODO: optimise
+
+    out1.0 = if x384 {
+        [x356, x358, x360, x362, x364, x366, x368]
+    } else {
+        [x369, x371, x373, x375, x377, x379, x381]
+    };
 }
 
 /// The function to_montgomery translates a field element into the Montgomery domain.
@@ -1794,51 +1537,20 @@ pub fn to_montgomery(
     let (x566, x567) = x524.carrying_add(x552, x565);
     let x568: u64 =
         (((x567 as u64) + ((x525 as u64) + ((x511 as u64) + x487))) + ((x553 as u64) + x529));
-    let mut x569: u64 = 0;
-    let mut x570: u1 = 0;
-    subborrowx_u64(&mut x569, &mut x570, 0x0, x556, 0x9ffffcd300000001);
-    let mut x571: u64 = 0;
-    let mut x572: u1 = 0;
-    subborrowx_u64(&mut x571, &mut x572, x570, x558, 0xa2a7e8c30006b945);
-    let mut x573: u64 = 0;
-    let mut x574: u1 = 0;
-    subborrowx_u64(&mut x573, &mut x574, x572, x560, 0xe4a7a5fe8fadffd6);
-    let mut x575: u64 = 0;
-    let mut x576: u1 = 0;
-    subborrowx_u64(&mut x575, &mut x576, x574, x562, 0x443f9a5cda8a6c7b);
-    let mut x577: u64 = 0;
-    let mut x578: u1 = 0;
-    subborrowx_u64(&mut x577, &mut x578, x576, x564, 0xa803ca76f439266f);
-    let mut x579: u64 = 0;
-    let mut x580: u1 = 0;
-    subborrowx_u64(&mut x579, &mut x580, x578, x566, 0x130e0000d7f70e4);
-    let mut x581: u64 = 0;
-    let mut x582: u1 = 0;
-    subborrowx_u64(&mut x581, &mut x582, x580, x568, 0x2400000000002400);
-    let mut x583: u64 = 0;
-    let mut x584: u1 = 0;
-    subborrowx_u64(&mut x583, &mut x584, x582, (0x0 as u64), (0x0 as u64));
-    let mut x585: u64 = 0;
-    cmovznz_u64(&mut x585, x584, x569, x556);
-    let mut x586: u64 = 0;
-    cmovznz_u64(&mut x586, x584, x571, x558);
-    let mut x587: u64 = 0;
-    cmovznz_u64(&mut x587, x584, x573, x560);
-    let mut x588: u64 = 0;
-    cmovznz_u64(&mut x588, x584, x575, x562);
-    let mut x589: u64 = 0;
-    cmovznz_u64(&mut x589, x584, x577, x564);
-    let mut x590: u64 = 0;
-    cmovznz_u64(&mut x590, x584, x579, x566);
-    let mut x591: u64 = 0;
-    cmovznz_u64(&mut x591, x584, x581, x568);
-    out1[0] = x585;
-    out1[1] = x586;
-    out1[2] = x587;
-    out1[3] = x588;
-    out1[4] = x589;
-    out1[5] = x590;
-    out1[6] = x591;
+    let (x569, x570) = x556.borrowing_sub(0x9ffffcd300000001, false);
+    let (x571, x572) = x558.borrowing_sub(0xa2a7e8c30006b945, x570);
+    let (x573, x574) = x560.borrowing_sub(0xe4a7a5fe8fadffd6, x572);
+    let (x575, x576) = x562.borrowing_sub(0x443f9a5cda8a6c7b, x574);
+    let (x577, x578) = x564.borrowing_sub(0xa803ca76f439266f, x576);
+    let (x579, x580) = x566.borrowing_sub(0x130e0000d7f70e4, x578);
+    let (x581, x582) = x568.borrowing_sub(0x2400000000002400, x580);
+    let (_x583, x584) = (0x0 as u64).borrowing_sub((0x0 as u64), x582);// TODO optimise?
+
+    out1.0 = if x584 {
+        [ x556, x558, x560, x562, x564, x566, x568 ]
+    } else {
+        [ x569, x571, x573, x575, x577, x579, x581 ]
+    };
 }
 
 /// The function nonzero outputs a single non-zero word if the input is non-zero and zero otherwise.
@@ -1884,13 +1596,7 @@ pub fn selectznz(out1: &mut [u64; 7], arg1: u1, arg2: &[u64; 7], arg3: &[u64; 7]
     cmovznz_u64(&mut x6, arg1, (arg2[5]), (arg3[5]));
     let mut x7: u64 = 0;
     cmovznz_u64(&mut x7, arg1, (arg2[6]), (arg3[6]));
-    out1[0] = x1;
-    out1[1] = x2;
-    out1[2] = x3;
-    out1[3] = x4;
-    out1[4] = x5;
-    out1[5] = x6;
-    out1[6] = x7;
+    *out1 = [x1, x2, x3, x4, x5, x6, x7];
 }
 
 /// The function to_bytes serializes a field element NOT in the Montgomery domain to bytes in little-endian order.
@@ -2227,7 +1933,7 @@ pub fn msat(out1: &mut [u64; 8]) {
     out1[4] = 0xa803ca76f439266f;
     out1[5] = 0x130e0000d7f70e4;
     out1[6] = 0x2400000000002400;
-    out1[7] = (0x0 as u64);
+    out1[7] = 0u64;
 }
 
 /// The function divstep computes a divstep.
@@ -2270,15 +1976,11 @@ pub fn divstep(
     arg4: &[u64; 7],
     arg5: &[u64; 7],
 ) {
-    let mut x1: u64 = 0;
-    let mut x2: u1 = 0;
-    addcarryx_u64(&mut x1, &mut x2, 0x0, (!arg1), (0x1 as u64));
+    let (x1, _x2) = (!arg1).overflowing_add((0x1 as u64));
     let x3: u1 = (((x1 >> 63) as u1) & (((arg3[0]) & (0x1 as u64)) as u1));
-    let mut x4: u64 = 0;
-    let mut x5: u1 = 0;
-    addcarryx_u64(&mut x4, &mut x5, 0x0, (!arg1), (0x1 as u64));
+    let (x4, _x5) = (!arg1).overflowing_add((0x1 as u64)); //TODO x1 == x4
     let mut x6: u64 = 0;
-    cmovznz_u64(&mut x6, x3, arg1, x4);
+    cmovznz_u64(&mut x6, x3, arg1, x4); //TODO: x1 was x4 but they're the same
     let mut x7: u64 = 0;
     cmovznz_u64(&mut x7, x3, (arg2[0]), (arg3[0]));
     let mut x8: u64 = 0;
@@ -2295,30 +1997,14 @@ pub fn divstep(
     cmovznz_u64(&mut x13, x3, (arg2[6]), (arg3[6]));
     let mut x14: u64 = 0;
     cmovznz_u64(&mut x14, x3, (arg2[7]), (arg3[7]));
-    let mut x15: u64 = 0;
-    let mut x16: u1 = 0;
-    addcarryx_u64(&mut x15, &mut x16, 0x0, (0x1 as u64), (!(arg2[0])));
-    let mut x17: u64 = 0;
-    let mut x18: u1 = 0;
-    addcarryx_u64(&mut x17, &mut x18, x16, (0x0 as u64), (!(arg2[1])));
-    let mut x19: u64 = 0;
-    let mut x20: u1 = 0;
-    addcarryx_u64(&mut x19, &mut x20, x18, (0x0 as u64), (!(arg2[2])));
-    let mut x21: u64 = 0;
-    let mut x22: u1 = 0;
-    addcarryx_u64(&mut x21, &mut x22, x20, (0x0 as u64), (!(arg2[3])));
-    let mut x23: u64 = 0;
-    let mut x24: u1 = 0;
-    addcarryx_u64(&mut x23, &mut x24, x22, (0x0 as u64), (!(arg2[4])));
-    let mut x25: u64 = 0;
-    let mut x26: u1 = 0;
-    addcarryx_u64(&mut x25, &mut x26, x24, (0x0 as u64), (!(arg2[5])));
-    let mut x27: u64 = 0;
-    let mut x28: u1 = 0;
-    addcarryx_u64(&mut x27, &mut x28, x26, (0x0 as u64), (!(arg2[6])));
-    let mut x29: u64 = 0;
-    let mut x30: u1 = 0;
-    addcarryx_u64(&mut x29, &mut x30, x28, (0x0 as u64), (!(arg2[7])));
+    let (x15, x16) = (0x1 as u64).overflowing_add((!(arg2[0])));
+    let (x17, x18) = (x16 as u64).overflowing_add((!(arg2[1])));
+    let (x19, x20) = (x18 as u64).overflowing_add((!(arg2[2])));
+    let (x21, x22) = (x20 as u64).overflowing_add((!(arg2[3])));
+    let (x23, x24) = (x22 as u64).overflowing_add((!(arg2[4])));
+    let (x25, x26) = (x24 as u64).overflowing_add((!(arg2[5])));
+    let (x27, x28) = (x26 as u64).overflowing_add((!(arg2[6])));
+    let (x29, _x30) = (x28 as u64).overflowing_add((!(arg2[7])));
     let mut x31: u64 = 0;
     cmovznz_u64(&mut x31, x3, (arg3[0]), x15);
     let mut x32: u64 = 0;
@@ -2349,37 +2035,21 @@ pub fn divstep(
     cmovznz_u64(&mut x44, x3, (arg4[5]), (arg5[5]));
     let mut x45: u64 = 0;
     cmovznz_u64(&mut x45, x3, (arg4[6]), (arg5[6]));
-let (x46, x47) = x39.overflowing_add(x39);
-let (x48, x49) = x40.carrying_add(x40, x47);
-let (x50, x51) = x41.carrying_add(x41, x49);
-let (x52, x53) = x42.carrying_add(x42, x51);
-let (x54, x55) = x43.carrying_add(x43, x53);
-let (x56, x57) = x44.carrying_add(x44, x55);
-let (x58, x59) = x45.carrying_add(x45, x57);
-    let mut x60: u64 = 0;
-    let mut x61: u1 = 0;
-    subborrowx_u64(&mut x60, &mut x61, 0x0, x46, 0x9ffffcd300000001);
-    let mut x62: u64 = 0;
-    let mut x63: u1 = 0;
-    subborrowx_u64(&mut x62, &mut x63, x61, x48, 0xa2a7e8c30006b945);
-    let mut x64: u64 = 0;
-    let mut x65: u1 = 0;
-    subborrowx_u64(&mut x64, &mut x65, x63, x50, 0xe4a7a5fe8fadffd6);
-    let mut x66: u64 = 0;
-    let mut x67: u1 = 0;
-    subborrowx_u64(&mut x66, &mut x67, x65, x52, 0x443f9a5cda8a6c7b);
-    let mut x68: u64 = 0;
-    let mut x69: u1 = 0;
-    subborrowx_u64(&mut x68, &mut x69, x67, x54, 0xa803ca76f439266f);
-    let mut x70: u64 = 0;
-    let mut x71: u1 = 0;
-    subborrowx_u64(&mut x70, &mut x71, x69, x56, 0x130e0000d7f70e4);
-    let mut x72: u64 = 0;
-    let mut x73: u1 = 0;
-    subborrowx_u64(&mut x72, &mut x73, x71, x58, 0x2400000000002400);
-    let mut x74: u64 = 0;
-    let mut x75: u1 = 0;
-    subborrowx_u64(&mut x74, &mut x75, x73, (x59 as u64), (0x0 as u64));
+    let (x46, x47) = x39.overflowing_add(x39);
+    let (x48, x49) = x40.carrying_add(x40, x47);
+    let (x50, x51) = x41.carrying_add(x41, x49);
+    let (x52, x53) = x42.carrying_add(x42, x51);
+    let (x54, x55) = x43.carrying_add(x43, x53);
+    let (x56, x57) = x44.carrying_add(x44, x55);
+    let (x58, x59) = x45.carrying_add(x45, x57);
+    let (x60, x61) = x46.borrowing_sub(0x9ffffcd300000001, false);
+    let (x62, x63) = x48.borrowing_sub(0xa2a7e8c30006b945, x61);
+    let (x64, x65) = x50.borrowing_sub(0xe4a7a5fe8fadffd6, x63);
+    let (x66, x67) = x52.borrowing_sub(0x443f9a5cda8a6c7b, x65);
+    let (x68, x69) = x54.borrowing_sub(0xa803ca76f439266f, x67);
+    let (x70, x71) = x56.borrowing_sub(0x130e0000d7f70e4, x69);
+    let (x72, x73) = x58.borrowing_sub(0x2400000000002400, x71);
+    let (_x74, x75) = (x59 as u64).borrowing_sub(0x0_u64, x73);
     let x76: u64 = (arg4[6]);
     let x77: u64 = (arg4[5]);
     let x78: u64 = (arg4[4]);
@@ -2410,27 +2080,13 @@ let (x58, x59) = x45.carrying_add(x45, x57);
     subborrowx_u64(&mut x95, &mut x96, x94, (0x0 as u64), x76);
     let mut x97: u64 = 0;
     cmovznz_u64(&mut x97, x96, (0x0 as u64), 0xffffffffffffffff);
-    let mut x98: u64 = 0;
-    let mut x99: u1 = 0;
-    addcarryx_u64(&mut x98, &mut x99, 0x0, x83, (x97 & 0x9ffffcd300000001));
-    let mut x100: u64 = 0;
-    let mut x101: u1 = 0;
-    addcarryx_u64(&mut x100, &mut x101, x99, x85, (x97 & 0xa2a7e8c30006b945));
-    let mut x102: u64 = 0;
-    let mut x103: u1 = 0;
-    addcarryx_u64(&mut x102, &mut x103, x101, x87, (x97 & 0xe4a7a5fe8fadffd6));
-    let mut x104: u64 = 0;
-    let mut x105: u1 = 0;
-    addcarryx_u64(&mut x104, &mut x105, x103, x89, (x97 & 0x443f9a5cda8a6c7b));
-    let mut x106: u64 = 0;
-    let mut x107: u1 = 0;
-    addcarryx_u64(&mut x106, &mut x107, x105, x91, (x97 & 0xa803ca76f439266f));
-    let mut x108: u64 = 0;
-    let mut x109: u1 = 0;
-    addcarryx_u64(&mut x108, &mut x109, x107, x93, (x97 & 0x130e0000d7f70e4));
-    let mut x110: u64 = 0;
-    let mut x111: u1 = 0;
-    addcarryx_u64(&mut x110, &mut x111, x109, x95, (x97 & 0x2400000000002400));
+    let (x98, x99) = x83.overflowing_add(x97 & 0x9ffffcd300000001);
+    let (x100, x101) = x85.carrying_add((x97 & 0xa2a7e8c30006b945), x99);
+    let (x102, x103) = x87.carrying_add((x97 & 0xe4a7a5fe8fadffd6), x101);
+    let (x104, x105) = x89.carrying_add((x97 & 0x443f9a5cda8a6c7b), x103);
+    let (x106, x107) = x91.carrying_add((x97 & 0xa803ca76f439266f), x105);
+    let (x108, x109) = x93.carrying_add((x97 & 0x130e0000d7f70e4), x107);
+    let (x110, _x111) = x95.carrying_add((x97 & 0x2400000000002400), x109);
     let mut x112: u64 = 0;
     cmovznz_u64(&mut x112, x3, (arg5[0]), x98);
     let mut x113: u64 = 0;
@@ -2462,14 +2118,14 @@ let (x58, x59) = x45.carrying_add(x45, x57);
     cmovznz_u64(&mut x126, x119, (0x0 as u64), x13);
     let mut x127: u64 = 0;
     cmovznz_u64(&mut x127, x119, (0x0 as u64), x14);
-let (x128, x129) = x31.overflowing_add(x120);
-let (x130, x131) = x32.carrying_add(x121, x129);
-let (x132, x133) = x33.carrying_add(x122, x131);
-let (x134, x135) = x34.carrying_add(x123, x133);
-let (x136, x137) = x35.carrying_add(x124, x135);
-let (x138, x139) = x36.carrying_add(x125, x137);
-let (x140, x141) = x37.carrying_add(x126, x139);
-let (x142, _x143) = x38.carrying_add(x127, x141);
+    let (x128, x129) = x31.overflowing_add(x120);
+    let (x130, x131) = x32.carrying_add(x121, x129);
+    let (x132, x133) = x33.carrying_add(x122, x131);
+    let (x134, x135) = x34.carrying_add(x123, x133);
+    let (x136, x137) = x35.carrying_add(x124, x135);
+    let (x138, x139) = x36.carrying_add(x125, x137);
+    let (x140, x141) = x37.carrying_add(x126, x139);
+    let (x142, _x143) = x38.carrying_add(x127, x141);
     let mut x144: u64 = 0;
     cmovznz_u64(&mut x144, x119, (0x0 as u64), x39);
     let mut x145: u64 = 0;
@@ -2484,40 +2140,22 @@ let (x142, _x143) = x38.carrying_add(x127, x141);
     cmovznz_u64(&mut x149, x119, (0x0 as u64), x44);
     let mut x150: u64 = 0;
     cmovznz_u64(&mut x150, x119, (0x0 as u64), x45);
-let (x151, x152) = x112.overflowing_add(x144);
-let (x153, x154) = x113.carrying_add(x145, x152);
-let (x155, x156) = x114.carrying_add(x146, x154);
-let (x157, x158) = x115.carrying_add(x147, x156);
-let (x159, x160) = x116.carrying_add(x148, x158);
-let (x161, x162) = x117.carrying_add(x149, x160);
-let (x163, x164) = x118.carrying_add(x150, x162);
-    let mut x165: u64 = 0;
-    let mut x166: u1 = 0;
-    subborrowx_u64(&mut x165, &mut x166, 0x0, x151, 0x9ffffcd300000001);
-    let mut x167: u64 = 0;
-    let mut x168: u1 = 0;
-    subborrowx_u64(&mut x167, &mut x168, x166, x153, 0xa2a7e8c30006b945);
-    let mut x169: u64 = 0;
-    let mut x170: u1 = 0;
-    subborrowx_u64(&mut x169, &mut x170, x168, x155, 0xe4a7a5fe8fadffd6);
-    let mut x171: u64 = 0;
-    let mut x172: u1 = 0;
-    subborrowx_u64(&mut x171, &mut x172, x170, x157, 0x443f9a5cda8a6c7b);
-    let mut x173: u64 = 0;
-    let mut x174: u1 = 0;
-    subborrowx_u64(&mut x173, &mut x174, x172, x159, 0xa803ca76f439266f);
-    let mut x175: u64 = 0;
-    let mut x176: u1 = 0;
-    subborrowx_u64(&mut x175, &mut x176, x174, x161, 0x130e0000d7f70e4);
-    let mut x177: u64 = 0;
-    let mut x178: u1 = 0;
-    subborrowx_u64(&mut x177, &mut x178, x176, x163, 0x2400000000002400);
-    let mut x179: u64 = 0;
-    let mut x180: u1 = 0;
-    subborrowx_u64(&mut x179, &mut x180, x178, (x164 as u64), (0x0 as u64));
-    let mut x181: u64 = 0;
-    let mut x182: u1 = 0;
-    addcarryx_u64(&mut x181, &mut x182, 0x0, x6, (0x1 as u64));
+    let (x151, x152) = x112.overflowing_add(x144);
+    let (x153, x154) = x113.carrying_add(x145, x152);
+    let (x155, x156) = x114.carrying_add(x146, x154);
+    let (x157, x158) = x115.carrying_add(x147, x156);
+    let (x159, x160) = x116.carrying_add(x148, x158);
+    let (x161, x162) = x117.carrying_add(x149, x160);
+    let (x163, x164) = x118.carrying_add(x150, x162);
+    let (x165, x166) = x151.borrowing_sub(0x9ffffcd300000001, false);
+    let (x167, x168) = x153.borrowing_sub(0xa2a7e8c30006b945, x166);
+    let (x169, x170) = x155.borrowing_sub(0xe4a7a5fe8fadffd6, x168);
+    let (x171, x172) = x157.borrowing_sub(0x443f9a5cda8a6c7b, x170);
+    let (x173, x174) = x159.borrowing_sub(0xa803ca76f439266f, x172);
+    let (x175, x176) = x161.borrowing_sub(0x130e0000d7f70e4, x174);
+    let (x177, x178) = x163.borrowing_sub(0x2400000000002400, x176);
+    let (_x179, x180) = (x164 as u64).borrowing_sub(0x0_u64, x178); //TODO optimise
+    let (x181, _x182) = x6.overflowing_add(0x1_u64);
     let x183: u64 = ((x128 >> 1) | ((x130 << 63) & 0xffffffffffffffff));
     let x184: u64 = ((x130 >> 1) | ((x132 << 63) & 0xffffffffffffffff));
     let x185: u64 = ((x132 >> 1) | ((x134 << 63) & 0xffffffffffffffff));
@@ -2526,65 +2164,24 @@ let (x163, x164) = x118.carrying_add(x150, x162);
     let x188: u64 = ((x138 >> 1) | ((x140 << 63) & 0xffffffffffffffff));
     let x189: u64 = ((x140 >> 1) | ((x142 << 63) & 0xffffffffffffffff));
     let x190: u64 = ((x142 & 0x8000000000000000) | (x142 >> 1));
-    let mut x191: u64 = 0;
-    cmovznz_u64(&mut x191, x75, x60, x46);
-    let mut x192: u64 = 0;
-    cmovznz_u64(&mut x192, x75, x62, x48);
-    let mut x193: u64 = 0;
-    cmovznz_u64(&mut x193, x75, x64, x50);
-    let mut x194: u64 = 0;
-    cmovznz_u64(&mut x194, x75, x66, x52);
-    let mut x195: u64 = 0;
-    cmovznz_u64(&mut x195, x75, x68, x54);
-    let mut x196: u64 = 0;
-    cmovznz_u64(&mut x196, x75, x70, x56);
-    let mut x197: u64 = 0;
-    cmovznz_u64(&mut x197, x75, x72, x58);
-    let mut x198: u64 = 0;
-    cmovznz_u64(&mut x198, x180, x165, x151);
-    let mut x199: u64 = 0;
-    cmovznz_u64(&mut x199, x180, x167, x153);
-    let mut x200: u64 = 0;
-    cmovznz_u64(&mut x200, x180, x169, x155);
-    let mut x201: u64 = 0;
-    cmovznz_u64(&mut x201, x180, x171, x157);
-    let mut x202: u64 = 0;
-    cmovznz_u64(&mut x202, x180, x173, x159);
-    let mut x203: u64 = 0;
-    cmovznz_u64(&mut x203, x180, x175, x161);
-    let mut x204: u64 = 0;
-    cmovznz_u64(&mut x204, x180, x177, x163);
+
     *out1 = x181;
-    out2[0] = x7;
-    out2[1] = x8;
-    out2[2] = x9;
-    out2[3] = x10;
-    out2[4] = x11;
-    out2[5] = x12;
-    out2[6] = x13;
-    out2[7] = x14;
-    out3[0] = x183;
-    out3[1] = x184;
-    out3[2] = x185;
-    out3[3] = x186;
-    out3[4] = x187;
-    out3[5] = x188;
-    out3[6] = x189;
-    out3[7] = x190;
-    out4[0] = x191;
-    out4[1] = x192;
-    out4[2] = x193;
-    out4[3] = x194;
-    out4[4] = x195;
-    out4[5] = x196;
-    out4[6] = x197;
-    out5[0] = x198;
-    out5[1] = x199;
-    out5[2] = x200;
-    out5[3] = x201;
-    out5[4] = x202;
-    out5[5] = x203;
-    out5[6] = x204;
+
+    *out2 = [ x7, x8, x9, x10, x11, x12, x13, x14 ];
+
+    *out3 = [ x183, x184, x185, x186, x187, x188, x189, x190 ];
+
+    *out4 = if x75 {
+        [ x46, x48, x50, x52, x54, x56, x58 ]
+    } else {
+        [ x60, x62, x64, x66, x68, x70, x72 ]
+    };
+
+    *out5 = if x180 {
+        [ x151, x153, x155, x157, x159, x161, x163 ]
+    } else {
+        [ x165, x167, x169, x171, x173, x175, x177 ]
+    };
 }
 
 /// The function divstep_precomp returns the precomputed value for Bernstein-Yang-inversion (in montgomery form).
