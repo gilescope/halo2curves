@@ -1,4 +1,3 @@
-//pub mod assembly;
 pub mod fp;
 pub mod fp12;
 pub mod fp2;
