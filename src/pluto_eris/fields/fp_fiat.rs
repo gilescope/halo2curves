@@ -18,8 +18,6 @@
 #![allow(unused_parens)]
 #![allow(non_camel_case_types)]
 
-//use super::assembly;
-
 /** u1 represents values of 1 bits, stored in one byte. */
 type u1 = u8;
 /** i1 represents values of 1 bits, stored in one byte. */
@@ -96,15 +94,6 @@ fn cmovznz_u64(out1: &mut u64, arg1: u1, arg2: u64, arg3: u64) {
     *out1 = (x2 & arg3) | (!x2 & arg2);
 }
 
-#[cfg(feature = "asm")]
-pub fn mul(
-    out1: &mut montgomery_domain_field_element,
-    arg1: &montgomery_domain_field_element,
-    arg2: &montgomery_domain_field_element,
-) {
-    assembly::mul_asm(&mut out1.0, &arg1.0, &arg2.0)
-}
-
 /// The function mul multiplies two field elements in the Montgomery domain.
 ///
 /// Preconditions:
@@ -132,7 +121,6 @@ pub fn mul(
 //let ($1, $2) = $4.borrowing_sub($5, $3);
 //.*subborrowx_u64\(&mut (x\d+), &mut (x\d+), (x\d+), (\(arg1\[\d\]\)), (\(arg2\[\d\]\))\);
 //let ($1, $2) = $4.borrowing_sub($5, $3);
-//#[cfg(not(feature = "asm"))]
 pub fn mul(
     out1: &mut montgomery_domain_field_element,
     arg1: &montgomery_domain_field_element,
@@ -1959,7 +1947,7 @@ pub fn divstep(
     let x80: u64 = (arg4[2]);
     let x81: u64 = (arg4[1]);
     let x82: u64 = (arg4[0]);
-    let (x83, x84) = 0u64.overflowing_sub(x82); //TODO optimise
+    let (x83, x84) = 0u64.overflowing_sub(x82);
     let (x85, x86) = 0u64.borrowing_sub(x81, x84);
     let (x87, x88) = 0u64.borrowing_sub(x80, x86);
     let (x89, x90) = 0u64.borrowing_sub(x79, x88);
