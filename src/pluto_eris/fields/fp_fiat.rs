@@ -816,7 +816,7 @@ pub fn square(out1: &mut montgomery_domain_field_element, arg1: &montgomery_doma
     let (x622, x623) = x607.borrowing_sub(0xa803ca76f439266f, x621);
     let (x624, x625) = x609.borrowing_sub(0x130e0000d7f70e4, x623);
     let (x626, x627) = x611.borrowing_sub(0x2400000000002400, x625);
-    let (_, x629) = x613.borrowing_sub(0x0u64, x627); //TODO simplify?
+    let (_, x629) = x613.overflowing_sub(x627 as u64);
 
     out1.0 = if x629 {
         [ x599, x601, x603, x605, x607, x609, x611]
@@ -853,7 +853,7 @@ pub fn add(
     let (x23, x24) = x9.borrowing_sub(0xa803ca76f439266f, x22);
     let (x25, x26) = x11.borrowing_sub(0x130e0000d7f70e4, x24);
     let (x27, x28) = x13.borrowing_sub(0x2400000000002400, x26);
-    let (_, x30) = (x14 as u64).borrowing_sub(0_u64, x28); //todo simplify?
+    let (_, x30) = (x14 as u64).overflowing_sub(x28 as u64);
 
     out1.0 = if x30 {
         [x1, x3, x5, x7, x9, x11, x13 ]
@@ -1129,7 +1129,7 @@ pub fn from_montgomery(
     let (x377, x378) = x364.borrowing_sub(0xa803ca76f439266f, x376);
     let (x379, x380) = x366.borrowing_sub(0x130e0000d7f70e4, x378);
     let (x381, x382) = x368.borrowing_sub(0x2400000000002400, x380);
-    let (_x383, x384) = (0x0 as u64).borrowing_sub((0x0 as u64), x382); //TODO: optimise
+    let (_x383, x384) = (0x0 as u64).overflowing_sub(x382 as u64);
 
     out1.0 = if x384 {
         [x356, x358, x360, x362, x364, x366, x368]
@@ -1446,7 +1446,7 @@ pub fn to_montgomery(
     let (x577, x578) = x564.borrowing_sub(0xa803ca76f439266f, x576);
     let (x579, x580) = x566.borrowing_sub(0x130e0000d7f70e4, x578);
     let (x581, x582) = x568.borrowing_sub(0x2400000000002400, x580);
-    let (_x583, x584) = (0x0 as u64).borrowing_sub((0x0 as u64), x582);// TODO optimise?
+    let (_x583, x584) = (0x0 as u64).overflowing_sub(x582 as u64);
 
     out1.0 = if x584 {
         [ x556, x558, x560, x562, x564, x566, x568 ]
@@ -1951,7 +1951,7 @@ pub fn divstep(
     let (x68, x69) = x54.borrowing_sub(0xa803ca76f439266f, x67);
     let (x70, x71) = x56.borrowing_sub(0x130e0000d7f70e4, x69);
     let (x72, x73) = x58.borrowing_sub(0x2400000000002400, x71);
-    let (_x74, x75) = (x59 as u64).borrowing_sub(0x0_u64, x73); //todo optimise
+    let (_x74, x75) = (x59 as u64).overflowing_sub(x73 as u64);
     let x76: u64 = (arg4[6]);
     let x77: u64 = (arg4[5]);
     let x78: u64 = (arg4[4]);
@@ -2042,7 +2042,7 @@ pub fn divstep(
     let (x173, x174) = x159.borrowing_sub(0xa803ca76f439266f, x172);
     let (x175, x176) = x161.borrowing_sub(0x130e0000d7f70e4, x174);
     let (x177, x178) = x163.borrowing_sub(0x2400000000002400, x176);
-    let (_x179, x180) = (x164 as u64).borrowing_sub(0x0_u64, x178); //TODO optimise
+    let (_x179, x180) = (x164 as u64).overflowing_sub(x178 as u64);
     let (x181, _x182) = x6.overflowing_add(0x1_u64);
     let x183: u64 = ((x128 >> 1) | ((x130 << 63) & 0xffffffffffffffff));
     let x184: u64 = ((x130 >> 1) | ((x132 << 63) & 0xffffffffffffffff));
