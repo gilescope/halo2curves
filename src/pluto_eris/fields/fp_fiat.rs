@@ -69,88 +69,6 @@ impl core::ops::IndexMut<usize> for non_montgomery_domain_field_element {
     }
 }
 
-// fn addinoutcarryx_u64(out1: &mut u64, out2: &mut u1, arg1: bool, arg2: u64, arg3: u64) {
-//     // let (x1, carry) = arg2.overflowing_add(arg3);
-//     // let (total, carry) = arg2.overflowing_add(arg3);
-//     // let mut x1 = total as u128;
-//     // x1 += arg1 as u128;
-//     // if carry {
-//     //     x1 += 1;
-//     // }
-//
-//     let (out, carry) = arg2.carrying_add(arg3, arg1);
-//
-//     // let x1 = arg1 as u128 + arg3 as u128 + arg3 as u128;
-//     let x1: u128 = ((arg1 as u128) + (arg2 as u128)) + (arg3 as u128);
-//
-//
-//
-//     // let c = if carry {
-//     //     1u8
-//     // } else { 0u8 };
-//     // let x1: u128 = (arg1 as u8 + c as u8  ) as u128 + (total as u128); // (arg2 as u128)) + (arg3 as u128);
-//
-//     *out1 = (x1 & 0xffffffffffffffff_u128) as u64;
-//     *out2 = ((x1 >> 64) as u1);
-// }
-
-// #[inline(always)]
-// fn addoutcarryx_u64(out1: &mut u64, out2: &mut u1, arg2: u64, arg3: u64) {
-//     // let (x1, carry) = arg2.overflowing_add(arg3);
-//     // let x1: u128 = (((arg2 as u128)) + (arg3 as u128));
-//     let (x1, carry) = arg2.overflowing_add(arg3);
-//     // let x2: u64 = ((x1 & (0xffffffffffffffff as u128)) as u64);
-//     // let x3: u1 = ((x1 >> 64) as u1);
-//     *out1 = x1;
-//     *out2 = carry.into();
-// }
-
-/// The function subborrowx_u64 is a subtraction with borrow.
-///
-/// Postconditions:
-///   out1 = (-arg1 + arg2 + -arg3) mod 2^64
-///   out2 = -⌊(-arg1 + arg2 + -arg3) / 2^64⌋
-///
-/// Input Bounds:
-///   arg1: [0x0 ~> 0x1]
-///   arg2: [0x0 ~> 0xffffffffffffffff]
-///   arg3: [0x0 ~> 0xffffffffffffffff]
-/// Output Bounds:
-///   out1: [0x0 ~> 0xffffffffffffffff]
-///   out2: [0x0 ~> 0x1]
-fn subborrowx_u64(out1: &mut u64, out2: &mut u1, arg1: u1, arg2: u64, arg3: u64) {
-    // let x1: i128 = (((arg2 as i128) - (arg1 as i128)) - (arg3 as i128));
-    // let x2: i1 = ((x1 >> 64) as i1);
-    // let x3: u64 = ((x1 & (0xffffffffffffffff as i128)) as u64);
-    // *out1 = x3;
-    // *out2 = (((0x0 as i2) - (x2 as i2)) as u1);
-
-
-    let (res, carry) = arg2.borrowing_sub(arg3, arg1==1);
-    *out1 = res;
-    *out2 = carry.into();
-}
-
-// /// The function mulx_u64 is a multiplication, returning the full double-width result.
-// ///
-// /// Postconditions:
-// ///   out1 = (arg1 * arg2) mod 2^64
-// ///   out2 = ⌊arg1 * arg2 / 2^64⌋
-// ///
-// /// Input Bounds:
-// ///   arg1: [0x0 ~> 0xffffffffffffffff]
-// ///   arg2: [0x0 ~> 0xffffffffffffffff]
-// /// Output Bounds:
-// ///   out1: [0x0 ~> 0xffffffffffffffff]
-// ///   out2: [0x0 ~> 0xffffffffffffffff]
-// fn mulx_u64(out1: &mut u64, out2: &mut u64, arg1: u64, arg2: u64) {
-//     let x1: u128 = (arg1 as u128) * (arg2 as u128);
-//     let x2: u64 = (x1 & (0xffffffffffffffff as u128)) as u64;
-//     let x3: u64 = (x1 >> 64) as u64;
-//     *out1 = x2;
-//     *out2 = x3;
-// }
-
 /// The function cmovznz_u64 is a single-word conditional move.
 ///
 /// Postconditions:
@@ -891,10 +809,8 @@ pub fn square(out1: &mut montgomery_domain_field_element, arg1: &montgomery_doma
     let (x609, x610) = x564.carrying_add(x594, x608);
     let (x611, x612) = x566.carrying_add(x596, x610);
     let x613: u64 = ((x612 as u64) + (x567 as u64));
-    let mut x614: u64 = 0;
-    let mut x615: u1 = 0;
-    subborrowx_u64(&mut x614, &mut x615, 0x0, x599, 0x9ffffcd300000001);
-    let (x616, x617) = x601.borrowing_sub(0xa2a7e8c30006b945, x615 == 1);
+    let (x614, x615) = x599.borrowing_sub(0x9ffffcd300000001, false);
+    let (x616, x617) = x601.borrowing_sub(0xa2a7e8c30006b945, x615);
     let (x618, x619) = x603.borrowing_sub(0xe4a7a5fe8fadffd6, x617);
     let (x620, x621) = x605.borrowing_sub(0x443f9a5cda8a6c7b, x619);
     let (x622, x623) = x607.borrowing_sub(0xa803ca76f439266f, x621);
@@ -989,29 +905,15 @@ pub fn sub(
 ///   0 ≤ eval out1 < m
 ///
 pub fn opp(out1: &mut montgomery_domain_field_element, arg1: &montgomery_domain_field_element) {
-    let mut x1: u64 = 0;
-    let mut x2: u1 = 0;
-    subborrowx_u64(&mut x1, &mut x2, 0x0, (0x0 as u64), (arg1[0]));
-    let mut x3: u64 = 0;
-    let mut x4: u1 = 0;
-    subborrowx_u64(&mut x3, &mut x4, x2, (0x0 as u64), (arg1[1]));
-    let mut x5: u64 = 0;
-    let mut x6: u1 = 0;
-    subborrowx_u64(&mut x5, &mut x6, x4, (0x0 as u64), (arg1[2]));
-    let mut x7: u64 = 0;
-    let mut x8: u1 = 0;
-    subborrowx_u64(&mut x7, &mut x8, x6, (0x0 as u64), (arg1[3]));
-    let mut x9: u64 = 0;
-    let mut x10: u1 = 0;
-    subborrowx_u64(&mut x9, &mut x10, x8, (0x0 as u64), (arg1[4]));
-    let mut x11: u64 = 0;
-    let mut x12: u1 = 0;
-    subborrowx_u64(&mut x11, &mut x12, x10, (0x0 as u64), (arg1[5]));
-    let mut x13: u64 = 0;
-    let mut x14: u1 = 0;
-    subborrowx_u64(&mut x13, &mut x14, x12, (0x0 as u64), (arg1[6]));
+    let (x1, x2) = 0u64.borrowing_sub(arg1[0], false);
+    let (x3, x4) = 0u64.borrowing_sub(arg1[1], x2);
+    let (x5, x6) = 0u64.borrowing_sub(arg1[2], x4);
+    let (x7, x8) = 0u64.borrowing_sub(arg1[3], x6);
+    let (x9, x10) = 0u64.borrowing_sub(arg1[4], x8);
+    let (x11, x12) = 0u64.borrowing_sub(arg1[5], x10);
+    let (x13, x14) = 0u64.borrowing_sub(arg1[6], x12);
     let mut x15: u64 = 0;
-    cmovznz_u64(&mut x15, x14, (0x0 as u64), 0xffffffffffffffff);
+    cmovznz_u64(&mut x15, x14 as u1, (0x0 as u64), 0xffffffffffffffff);
 
     let (x16, x17) = x1.overflowing_add((x15 & 0x9ffffcd300000001));
     let (x18, x19) = x3.carrying_add((x15 & 0xa2a7e8c30006b945), x17);
@@ -2057,29 +1959,15 @@ pub fn divstep(
     let x80: u64 = (arg4[2]);
     let x81: u64 = (arg4[1]);
     let x82: u64 = (arg4[0]);
-    let mut x83: u64 = 0;
-    let mut x84: u1 = 0;
-    subborrowx_u64(&mut x83, &mut x84, 0x0, (0x0 as u64), x82);
-    let mut x85: u64 = 0;
-    let mut x86: u1 = 0;
-    subborrowx_u64(&mut x85, &mut x86, x84, (0x0 as u64), x81);
-    let mut x87: u64 = 0;
-    let mut x88: u1 = 0;
-    subborrowx_u64(&mut x87, &mut x88, x86, (0x0 as u64), x80);
-    let mut x89: u64 = 0;
-    let mut x90: u1 = 0;
-    subborrowx_u64(&mut x89, &mut x90, x88, (0x0 as u64), x79);
-    let mut x91: u64 = 0;
-    let mut x92: u1 = 0;
-    subborrowx_u64(&mut x91, &mut x92, x90, (0x0 as u64), x78);
-    let mut x93: u64 = 0;
-    let mut x94: u1 = 0;
-    subborrowx_u64(&mut x93, &mut x94, x92, (0x0 as u64), x77);
-    let mut x95: u64 = 0;
-    let mut x96: u1 = 0;
-    subborrowx_u64(&mut x95, &mut x96, x94, (0x0 as u64), x76);
+    let (x83, x84) = 0u64.borrowing_sub(x82, false); //TODO optimise
+    let (x85, x86) = 0u64.borrowing_sub(x81, x84);
+    let (x87, x88) = 0u64.borrowing_sub(x80, x86);
+    let (x89, x90) = 0u64.borrowing_sub(x79, x88);
+    let (x91, x92) = 0u64.borrowing_sub(x78, x90);
+    let (x93, x94) = 0u64.borrowing_sub(x77, x92);
+    let (x95, x96) = 0u64.borrowing_sub(x76, x94);
     let mut x97: u64 = 0;
-    cmovznz_u64(&mut x97, x96, (0x0 as u64), 0xffffffffffffffff);
+    cmovznz_u64(&mut x97, x96 as u1, (0x0 as u64), 0xffffffffffffffff);
     let (x98, x99) = x83.overflowing_add(x97 & 0x9ffffcd300000001);
     let (x100, x101) = x85.carrying_add((x97 & 0xa2a7e8c30006b945), x99);
     let (x102, x103) = x87.carrying_add((x97 & 0xe4a7a5fe8fadffd6), x101);
